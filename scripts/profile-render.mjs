@@ -65,7 +65,11 @@ window.__profile = {
     if(this.cooldownMs>0)await new Promise(r=>setTimeout(r,this.cooldownMs));
   },
   get gl(){return gl;},
-  features(){return {noiseCacheEnabled:typeof noiseCache!=='undefined'&&Boolean(noiseCache.enabled)};},
+  features(){return {
+    noiseCacheEnabled:typeof noiseCache!=='undefined'&&Boolean(noiseCache.enabled),
+    roofAngleCacheEnabled:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.enabled),
+    roofAngleCacheValid:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.valid)
+  };},
   capture(){
     const previous=gl.getParameter(gl.FRAMEBUFFER_BINDING);
     const read=target=>{gl.bindFramebuffer(gl.FRAMEBUFFER,target.framebuffer);const p=new Uint8Array(world.width*world.height*4);gl.readPixels(0,0,world.width,world.height,gl.RGBA,gl.UNSIGNED_BYTE,p);return p;};
@@ -110,7 +114,7 @@ async function serve(directory, ref) {
   for (const name of ['main.js','shaders.js','newlayers.js','post.js','graphics.js','newscore.js','choreography.js','public/track-analysis.json']) {
     sources[name] = createHash('sha256').update(await get(name)).digest('hex');
   }
-  for (const name of ['flow-bounds.js','shell-bound.js','roof-cache.js','noise-cache.js']) {
+  for (const name of ['flow-bounds.js','shell-bound.js','roof-cache.js','noise-cache.js','roof-angle-cache.js']) {
     try { sources[name] = createHash('sha256').update(await get(name)).digest('hex'); }
     catch(error) { if ((await get('main.js')).toString().includes(`'./${name}'`)) throw error; }
   }
@@ -178,7 +182,7 @@ try {
       await __profile.frame(t);
       if (__film.prepareScene && !await __film.prepareScene(__film.state.world)) throw Error('Scene specialization failed');
     },time);
-    Object.assign(result,await pages[1].evaluate(()=>({world:__film.state.world,shot:__film.state.shot})));
+    Object.assign(result,await pages[1].evaluate(()=>({world:__film.state.world,shot:__film.state.shot,features:__profile.features()})));
     if (mode === 'compare') {
       for (const page of pages) await page.evaluate(() => __profile.reset());
       result.frames = [];

@@ -280,3 +280,14 @@ same two 1280×720 windows. It retains all density queries and saves only
 ceiling/lighting work; a clear speedup is unproven and it remains unmerged.
 Each timing experiment used two blocks of four frames per side, one queued
 frame, 1000 ms pauses and RadeonSI uniform inlining disabled.
+
+A compact normal-query loop (`b0749c5`) retained the four original offsets
+and left-to-right additions. Ten sampled 640×360 frames passed unchanged
+encoded depth, maximum color difference 2/255 and RMS below .0153. Generic
+driver code size fell 421,140→322,876 bytes (-23.3%), with the same 96 VGPR,
+108 SGPR, no spills/scratch and five compiled maximum waves. Nevertheless,
+small paced cathedral timings were flat at 1280×720 (+.08%/+.04%), and at
+4K measured 18.313→18.315 ms and 21.814→21.866 ms. Smaller static code alone
+did not improve these sampled render times; the candidate remains unmerged.
+The 4K runs used two blocks of two frames per side; scheduling and driver
+options match the earlier 1000 ms paced experiments.
