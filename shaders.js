@@ -813,6 +813,10 @@ vec3 flowParticles(vec2 uv,vec3 ro,vec3 forward,vec3 right,vec3 up,float lens) {
             vec2 screen=vec2(dot(rel,right),dot(rel,up))/depth*lens;
             vec2 d=uv-screen;
             float size=.003+.004/(1.0+depth*.4);
+            // Outside this footprint each Gaussian/tail contribution is below
+            // exp(-22). Across all 44 particles omitted radiance is <1.3e-8.
+            // Keep the surviving expressions unchanged for deterministic hashes.
+            if(abs(d.x)>22.0*size||abs(d.y)>22.0*(.007+.036/depth)) continue;
             float spark=exp(-dot(d,d)/(size*size));
             float tail=exp(-abs(d.x)/size)*exp(-abs(d.y)/(.007+.036/depth))*u_motion;
             vec3 color=mix(vec3(.05,.73,1.0),vec3(1.0,.08,.15),step(.73,h));
