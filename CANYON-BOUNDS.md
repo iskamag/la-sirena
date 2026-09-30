@@ -46,10 +46,30 @@ binary64 cost attribution, not GPU fidelity proof. Temporary independent
 replay is /tmp/mus2-canyon-reject-cpu.mjs with its JSON report.
 
 Root measured time20 paired true4K GPU mean 17.886 ->15.168 ms (15.20%),
-candidate max15.583 ms. Quality and broader controls remain root-owned gates.
+candidate max15.583 ms. GPU quality and control gates subsequently passed as recorded below.
 This agent ran CPU checks, offline GLSL and Vite build only.
 
 The frozen production shader hashes in check-primary-guide.mjs must now change:
 shaders.js exports the changed canyon body and derived cloud/guide programs
 include its source prefix. Baseline hashes remain documented by the parent
 commit; claiming unchanged exported shader strings would be incorrect.
+
+Production acceptance
+---------------------
+
+Accepted as e011ead. Fourteen true-4K frames at 17.01/20/35/160 plus
+20/51.03/54.4 with motion .2 and pointer [-1,1] had identical final color
+and encoded depth. This includes both canyon passages and shared flow/cloud/
+cathedral shader regressions. The 20-second candidate image was viewed.
+All 23 default chapter samples at 960x540 also matched final color and depth
+exactly. Reports: artifacts/optimization/canyon-rejection-4k-{quality,controls}
+and canyon-rejection-all-world-quality.
+
+Independent review added 177,612 targeted float32 points and 1,065,672
+cutoff/distance/material checks without an error. The source/eligibility/
+lifecycle checker and build passed after integration. These numerical and
+GPU checks are scoped evidence; they do not prove every driver or frame.
+
+Paired timing report: artifacts/optimization/canyon-rejection-4k-performance.
+The broad sweep preceding this change remains in PRODUCTION-PERFORMANCE.md;
+a post-integration timing audit is required before claiming whole-film 4K60.

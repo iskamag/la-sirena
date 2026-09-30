@@ -2,8 +2,9 @@ Opened cathedral primary miss/glow guide
 =======================================
 
 Integrated from guarded candidate f6cf99b; source baseline 0f7b6fb.
-The production world and cloud shader exports are byte identical to that
-baseline. primary-shaders.js derives a separate guide-aware world and guide
+At initial integration, world and cloud shader exports were byte identical to
+that baseline. Canyon rejection e011ead subsequently updated the shared source
+prefix and frozen hashes; see CANYON-BOUNDS.md for exact sampled GPU regressions. primary-shaders.js derives a separate guide-aware world and guide
 prepass through unique source anchors. Their exported strings are byte identical
 to the tested window-guard 8bd869a prototype. Source drift fails explicitly at module load.
 
@@ -87,7 +88,8 @@ guide, with the existing flow coarse-bound validity flag. Its miss packets
 bypass the cathedral-only window support guard. Full-resolution hits retain
 the original normals, shading and materials.
 
-Derived optional shader hashes now match flow candidate 65628ba; production
-world/cloud exports remain unchanged. Cathedral regression checks are repeated
+At flow integration, optional shader hashes matched candidate 65628ba and
+world/cloud exports were unchanged. The later canyon rejection updates those
+hashes as described above. Cathedral regression checks are repeated
 because the optional shared programs recompile. See FLOW-PRIMARY-MISS-GUIDE.md
 for measured 28–30% flow gains and bounded visual evidence.

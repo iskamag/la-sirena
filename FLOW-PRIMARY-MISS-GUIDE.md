@@ -1,3 +1,8 @@
+Current source note: canyon rejection e011ead subsequently updated the shared
+source prefix and frozen shader hashes. Its flow/cathedral GPU regression
+frames matched exactly; see CANYON-BOUNDS.md. The measurements below describe
+the original flow integration.
+
 # Flow primary miss/glow guide prototype
 
 This candidate extends the existing quarter-resolution primary guide to flow scene 1. A full-resolution ray skips its entire primary march only when the four neighboring guide rays all miss, their capped glow spread is at most .02, and their minimum normalized clearance exceeds `2.5/(height*lens)`. Accepted misses use bilinear guide glow. All other rays retain the full-resolution production march, normals, materials, particles and shading.
