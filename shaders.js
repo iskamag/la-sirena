@@ -217,19 +217,30 @@ float mapShell(vec3 p) {return shellWorld(p,false).x;}
 vec2 mapFlow(vec3 p) {
     float t=motionTime(),best=100.0,material=0.0;
     float z=p.z,beat=pulse()*u_motion;
+    vec2 bodies[4];float radii[4];float upper=100.0;
+    // Three strands are separated by 120 degrees, so at least one center
+    // lies within 60 degrees of the radial direction. Its distance bounds
+    // the field from above without choosing or reordering any materials.
     for(int i=0;i<4;i++) {
         float fi=float(i),phase=fi*TAU/4.0;
         float angle=phase+z*.24+t*.16;
         float radius=1.14+.20*sin(z*.42+phase+t*.20)+.07*beat;
         vec2 center=vec2(cos(angle)*radius*1.33,sin(angle)*radius);
         center+=.19*vec2(sin(z*.52+phase*1.7),cos(z*.47+phase));
-        vec2 body=p.xy-center;
+        bodies[i]=p.xy-center;radii[i]=length(bodies[i]);
+        float r=radii[i];
+        float candidate=(sqrt(r*r+.105*.105-r*.105)-.038-.006*beat)*.48+.0001;
+        upper=min(upper,candidate);
+    }
+    for(int i=0;i<4;i++) {
+        float fi=float(i),phase=fi*TAU/4.0;
+        vec2 body=bodies[i];
         // Radial lower bounds for the strands, cells, links and filament.
         // Keep a rounding margin; all surviving field arithmetic is unchanged.
         float boundRadius=max(.233,max(.143+.006*beat,.106+.016*beat));
-        if((length(body)-boundRadius)*.48-.0001>=best) continue;
+        if((radii[i]-boundRadius)*.48-.0001>=min(best,upper)) continue;
         bool detail=density()>.01;
-        float cell=0.0,link=0.0,thread=0.0,cutoff=best;
+        float cell=0.0,link=0.0,thread=0.0,cutoff=min(best,upper);
         if(detail) {
             float cellZ=mod(z+fi*.76+1.5,3.0)-1.5;
             cell=length(vec3(body,cellZ))-.106-.016*beat;
@@ -238,11 +249,11 @@ vec2 mapFlow(vec3 p) {
             float helix=z*3.6+phase+t*.42;
             vec2 filament=body-.224*vec2(cos(helix),sin(helix));
             thread=(length(filament)-.009)*.48;
-            cutoff=min(best,min(cell*.48,min(link*.48,thread)));
+            cutoff=min(cutoff,min(cell*.48,min(link*.48,thread)));
         }
         // Look ahead at detail distances without choosing their materials yet.
         // The margin keeps potential strand/detail ties in the original order.
-        if((length(body)-(.143+.006*beat))*.48-.0001<cutoff) {
+        if((radii[i]-(.143+.006*beat))*.48-.0001<cutoff) {
             for(int j=0;j<3;j++) {
                 float fj=float(j),helix=z*2.35+fj*TAU/3.0+phase-t*.30;
                 vec2 q=body-.105*vec2(cos(helix),sin(helix));
