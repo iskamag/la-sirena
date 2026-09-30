@@ -90,3 +90,33 @@ Same paired hardware/pacing as the other structural comparisons. No additional
 quality runs or threshold/domain/cache tuning are planned for this candidate.
 Production renderer stays unchanged. CPU field counts are not frame-time proof.
 Report: artifacts/optimization/cathedral-field-lookahead-4k-performance.
+
+Cumulative speed against the original renderer
+---------------------------------------------
+
+Paired default-driver RX 6800 / ANGLE OpenGL 3840x2160, baseline 9d414e0
+and current renderer e011ead, two alternating blocks of two timed frames,
+one queued frame and 1000 ms pauses:
+
+| Time | Original ms | Current ms | Reduction | Current maximum ms |
+| --- | ---: | ---: | ---: | ---: |
+| 35 | 29.63286 | 11.45925 | 61.33% | 11.75884 |
+| 160 | 30.28052 | 15.57619 | 48.56% | 15.67008 |
+
+These correspond to the cumulative visual comparison above. Report:
+artifacts/optimization/cumulative-original-4k-performance.
+
+Temporal hit-prefix approximation parked
+---------------------------------------
+
+The isolated CPU track tested four adjacent-frame cases at 149.72/150.1/
+150.5/151, 1024 pixels each, four coherent prior full-resolution hits and a
+.2-world-unit safety prefix. Even optimistic zero-cost history saved only
+18–24% of primary queries. It lost 9/1/1/14 hits respectively, changed
+26/4/1/26 encoded depth bytes and produced maximum normal errors of
+119/49/35/137 degrees. A concrete 151-second ray changed from a hit at
+3.7688 units to a miss past 35.8700, with capped-glow error 1.3804.
+
+This does not preserve the current sampling sequence or geometry. No GPU
+prototype, cache implementation or parameter tuning is planned. Production
+remains unchanged. Evidence: /tmp/mus2-cathedral-temporal-hit-prefix.jsonl.
