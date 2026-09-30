@@ -203,3 +203,18 @@ skipped 42–48% of animated strand trig pairs in a CPU ray replay, yet regresse
 passed image checks but regressed timing by .4–.5%. Both remain unmerged.
 CPU work counts alone do not establish a GPU speedup: extra bounds, control
 flow, lane divergence and register allocation also matter.
+
+The unmerged `optimize/cathedral-hierarchy` candidate combines floor cutoffs for
+pillars/rings and arches with loose bounds around two roof plates per existing
+grid cell. The original surviving expressions, component order and march
+schedule remain intact. A six-window 64×36 CPU replay estimates 16.7–35.7%
+tower skips, 11.9–34.4% arch skips and 41.2–68.1% roof-piece skips. These are
+opportunity estimates from a binary64 replay, not measured GPU savings.
+
+Candidate commit `30a087d` contains `CATHEDRAL-BOUNDS.md` and the reusable
+`scripts/check-cathedral-bounds.mjs`. One million binary32-model samples per
+field plus targeted boundaries passed with zero guarded violations or unsafe
+rejections; a second million-sample seed also passed. The combined candidate
+passed the production build, offline glslang GLSL linking and render-state
+check. GPU image equivalence, driver compilation and timing remain unverified;
+no rendering tests were started after the desktop freeze report.
