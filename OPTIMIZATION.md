@@ -266,3 +266,17 @@ cache sampler and explicitly disables the cache for its single-frame compiler
 diagnostic. This avoids an incomplete-sampler GL error on current revisions.
 With uniform inlining disabled, the generic shader still contains both paths;
 these diagnostics do not measure the enabled cache's rendering performance.
+
+Decorative-wire bounds (`7f6327b`) passed six 640×360 frames exactly, but
+small paced 1280×720 comparisons regressed 144/160 s by .3%/.96%. Removing
+the crown guard (`3552ed2`) measured +1.3%/-0.4%; one baseline frame outlier
+weakens the apparent early gain. Neither establishes a useful speedup and
+neither is merged. CPU skip counts of 47–68% for lanterns and 59–83% for
+crowns describe field-call opportunities, not saved whole-wave GPU work.
+
+The exact zero-density cloud-layer lighting skip (`7952473`) passed six
+640×360 frames exactly, but measured only .2%/.6% lower GPU time in those
+same two 1280×720 windows. It retains all density queries and saves only
+ceiling/lighting work; a clear speedup is unproven and it remains unmerged.
+Each timing experiment used two blocks of four frames per side, one queued
+frame, 1000 ms pauses and RadeonSI uniform inlining disabled.
