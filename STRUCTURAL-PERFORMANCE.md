@@ -64,6 +64,12 @@ pointer [.8,-.7] passed: identical depth, maximum final color difference 2,
 RMS <= .03001. Report:
 `artifacts/optimization/primary-miss-guide-portrait-control-quality/compare-1440.json`.
 
+Three true-4K frames at 144/160/169.9 s also passed against `4071d47`, the
+reference preceding the accepted distant-cloud prepass. These measure the
+cumulative cloud and miss-guide approximation: depth identical, maximum color
+difference 2, RMS <= .02972. Report:
+`artifacts/optimization/primary-miss-guide-cumulative-4k-quality/compare-3840.json`.
+
 Exact per-ray candidate masks were ruled out before GPU work: a conservative
 floor-based distance upper envelope rejected only .048% of opened-roof hashes
 and no plate fields while adding substantial setup. No-hit certificates have
