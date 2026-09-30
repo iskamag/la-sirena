@@ -7,10 +7,10 @@ import { primaryWorldFragment, primaryGuideFragment, createPrimaryWorld } from '
 import { recordingGL } from './native-gl.mjs';
 const hash=source=>createHash('sha256').update(source).digest('hex');
 // Frozen production sources and GPU-tested flow guide candidate 65628ba.
-assert.equal(hash(fragmentShader),'bdaf3b3bf37a2098e5af47c92956d6787e7e22b666460e109723cdaaecc15748');
-assert.equal(hash(cloudVolumeFragment),'545733c2195aa83a924a6635d76e38fdaa6f4b6785ebc14bb9332a21c46928b7');
-assert.equal(hash(primaryWorldFragment),'fb919c80530d045f11994a726282e10085d4d7f880b4b052c2f80ef1168a3447');
-assert.equal(hash(primaryGuideFragment),'374509b0725bc032c661025078726c49da35bcc10b6f42b13846d98a2c5c0e33');
+assert.equal(hash(fragmentShader),'a31920e663dba1a881e97204a014e837cd5167dbf0d478ba369e432ef648bb2e');
+assert.equal(hash(cloudVolumeFragment),'5b388d9b4fddc09da651d7cccd43a124c6ebca2544fb42774f441d459f61bf1b');
+assert.equal(hash(primaryWorldFragment),'2751ef15176f20913e1185ecc2717887cebd6360f943e957e9dde8f763c9ab8a');
+assert.equal(hash(primaryGuideFragment),'2a586ac8d0d8246a4310f494df46a6ce16024d9ea92d3de5d1b7155937e247c1');
 assert(primaryGuideFragment.includes('gl_FragCoord.xy*u_resolution/u_primaryGuideResolution'));
 assert(primaryGuideFragment.includes('for(int i=0;i<76;i++)'));
 assert(primaryGuideFragment.includes('if(i>=60&&scene!=1) break;'));
@@ -80,4 +80,4 @@ for(const failure of [null,'compile','link','attribute-api']){
  const programs=gl.commands.filter(c=>c.op==='createProgram').map(c=>c.result);
  for(const program of programs)assert.equal(gl.commands.filter(c=>c.op==='deleteProgram'&&c.args[0].resource===program).length,1);
 }
-console.log('Frozen production/guide source hashes, opened/high-resolution eligibility, stale validity, capability/draw fallback, compatible attribute binding and resource cleanup passed.');
+console.log('Frozen candidate world/cloud/guide source hashes, opened/high-resolution eligibility, stale validity, capability/draw fallback, compatible attribute binding and resource cleanup passed.');

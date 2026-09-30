@@ -844,17 +844,30 @@ vec2 canyonWorld(vec3 p) {
     float row=floor((p.z+3.7)/7.4);
     for(int sideIndex=0;sideIndex<2;sideIndex++) for(int adjacent=-1;adjacent<=1;adjacent++) {
         float side=float(sideIndex)*2.0-1.0,z=(row+float(adjacent))*7.4;
+        // Rotated weighted-L1 support bounds over every h in [0,1].
+        // Coordinate padding and distance slack round outward; survivors below
+        // retain the original field arithmetic and material comparison order.
+        vec3 cliffGap=max(abs(p-vec3(side*4.11,1.46,z))-vec3(.212,.552,.172),vec3(0));
+        float cliffLower=max((max(max(cliffGap.x/2.16,cliffGap.y/5.35),cliffGap.z/3.56)-1.0)*.57735027*2.16,-p.y-1.93)-.01;
+        vec3 satelliteGap=max(abs(p-vec3(side*2.605,-.69,z+2.26))-vec3(.147,.002,.002),vec3(0));
+        float satelliteLower=(max(max(satelliteGap.x/.55,satelliteGap.y/1.55),satelliteGap.z/.81)-1.0)*.57735027*.55-.01;
+        bool bounded=all(lessThanEqual(abs(p),vec3(1024)))&&abs(d)<=128.0;
+        if(bounded&&cliffLower>=d&&satelliteLower>=d) continue;
         float h=hash(vec2(row+float(adjacent),float(sideIndex)*14.91+2.3));
+        if(!bounded||cliffLower<d) {
         vec3 center=vec3(side*(3.90+.42*h),.91+1.10*h,z+.34*(h-.5));
         vec3 q=p-center;
         q.xy=rot(side*(.15+.14*h))*q.xy;q.yz=rot((h-.5)*.43)*q.yz;
         float cliff=octahedron(q/vec3(2.16,4.15+1.2*h,3.56),1.0)*2.16;
         cliff=max(cliff,-p.y-1.93);
         if(cliff<d) {d=cliff;material=1.0+float(sideIndex);}
+        }
+        if(!bounded||satelliteLower<d) {
         vec3 shard=p-vec3(side*(2.75-.29*h),-.69,z+2.26);
         shard.xy=rot(-side*.24)*shard.xy;shard.yz=rot(.16)*shard.yz;
         float satellite=octahedron(shard/vec3(.55,1.15+.40*h,.81),1.0)*.55;
         if(satellite<d) {d=satellite;material=3.0+float(sideIndex);}
+        }
     }
     return vec2(d*.72,material);
 }
