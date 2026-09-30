@@ -1,3 +1,4 @@
+import { NoiseCache } from '../noise-cache.js';
 import { flowBoundValidity } from '../flow-bounds.js';
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdir, open } from 'node:fs/promises';
@@ -99,8 +100,8 @@ const vao=gl.createVertexArray();gl.bindVertexArray(vao);
 const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
 const attribute=gl.getAttribLocation(program,'a_position');gl.enableVertexAttribArray(attribute);gl.vertexAttribPointer(attribute,2,gl.FLOAT,false,0,0);
 const uniforms=[...fragmentShader.matchAll(/uniform\s+(\w+)\s+(u_\w+)\s*;/g)].map(([,type,name])=>({type,name:name.slice(2),location:gl.getUniformLocation(program,name)}));
-const layers=new SecondaryLayers(gl),post=new Compositor(gl);layers.resize(width,height);post.resize(width,height);
-const sourceHashes=Object.fromEntries(await Promise.all(['shaders.js','flow-bounds.js','newlayers.js','post.js','newscore.js','choreography.js','graphics.js','scripts/native-graphics.mjs','scripts/native-overlay.py'].map(async file=>[file,hash(await readFile(file))])));
+const layers=new SecondaryLayers(gl),post=new Compositor(gl),noiseCache=new NoiseCache(gl);layers.resize(width,height);post.resize(width,height);
+const sourceHashes=Object.fromEntries(await Promise.all(['shaders.js','flow-bounds.js','noise-cache.js','newlayers.js','post.js','newscore.js','choreography.js','graphics.js','scripts/native-graphics.mjs','scripts/native-overlay.py'].map(async file=>[file,hash(await readFile(file))])));
 const file=await open(output,'w');
 await file.write(JSON.stringify({type:'init',width,height,sourceHashes,commands:gl.commands})+'\n');
 for(const time of times){
@@ -108,14 +109,16 @@ for(const time of times){
   const descriptor=score.at(time,scoreOptions),{frame}=descriptor;
   const overlay=args['no-overlay']?null:filmSVG(analysis,descriptor,width,height);
   post.begin();gl.useProgram(program);gl.bindVertexArray(vao);
-  const values={...frame,resolution:[width,height],flowBoundValid:flowBoundValidity(frame)};
+  const values={...frame,resolution:[width,height],flowBoundValid:flowBoundValidity(frame),noiseCache:5,noiseCacheValid:0};
   for(const {type,name,location} of uniforms){
     const value=values[name];assert.notEqual(value,undefined,`Native frame supplies u_${name}`);
     if(type==='float')gl.uniform1f(location,Number(value));
+    else if(type==='sampler2D')gl.uniform1i(location,Number(value));
     else if(type==='vec2')gl.uniform2fv(location,value);
     else if(type==='vec4')gl.uniform4fv(location,value);
     else throw Error(`Unimplemented base uniform type:${type}`);
   }
+  noiseCache.bind(Object.fromEntries(uniforms.map(u=>[u.name,u.location])),frame);
   gl.drawArrays(gl.TRIANGLES,0,3);
   frame.depthTexture=post.captureDepth();frame.depthScale=40;layers.renderForCompositor(frame);post.finish(frame);
   const {depthTexture,...state}=frame;

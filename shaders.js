@@ -34,6 +34,7 @@ void main() { gl_Position = vec4(a_position, 0.0, 1.0); }
 
 export const fragmentShader = `#version 300 es
 precision highp float;
+precision highp sampler2D;
 out vec4 fragColor;
 uniform vec2 u_resolution;
 uniform float u_time;
@@ -48,6 +49,8 @@ uniform float u_poster;
 uniform float u_shot;
 uniform float u_density;
 uniform float u_flowBoundValid;
+uniform sampler2D u_noiseCache;
+uniform float u_noiseCacheValid;
 // chapter age, rupture age, rupture progress, arcade progress
 uniform vec4 u_event;
 // onset, kick, impact, musical pulse phase
@@ -992,6 +995,25 @@ vec3 shadowField(vec2 uv) {
     return spectralHorizon(uv,age);
 }
 
+// Only temple cloud noise uses the optional hash lattice. Keep the original
+// interpolation arithmetic and direct fallback; geometry noise is unchanged.
+float templeNoise(vec2 p) {
+    vec2 i = floor(p), f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    if(u_noiseCacheValid>.5&&all(greaterThanEqual(i,vec2(-256)))&&all(lessThan(i,vec2(256)))) {
+        vec4 h=texelFetch(u_noiseCache,ivec2(i+vec2(256)),0);
+        return mix(mix(h.x,h.y,f.x),mix(h.z,h.w,f.x),f.y);
+    }
+    return mix(mix(hash(i), hash(i + vec2(1,0)), f.x),
+               mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), f.x), f.y);
+}
+float templeFbm(vec2 p) {
+    float f = .55 * templeNoise(p);
+    p = mat2(.8,.6,-.6,.8) * p * 2.1;
+    f += .27 * templeNoise(p);
+    p = mat2(.8,.6,-.6,.8) * p * 2.2;
+    return f + .13 * templeNoise(p);
+}
 // Clouds sit in the opened vault; translational parallax follows the viewing ray.
 vec3 templeClouds(vec3 ro,vec3 rd) {
     float opened=rupture(),t=motionTime();
@@ -1010,8 +1032,8 @@ vec3 templeClouds(vec3 ro,vec3 rd) {
         vec3 p=ro+rd*distance;
         p.z+=transport*2.2;p.x+=transport*.4;
         vec2 weather=p.xz*.054;
-        vec2 warp=vec2(fbm(weather+vec2(t*.015,4.2)),fbm(weather*.93+vec2(8.1,-t*.012)))-.45;
-        float cloud=fbm(weather*2.8+warp*3.2);
+        vec2 warp=vec2(templeFbm(weather+vec2(t*.015,4.2)),templeFbm(weather*.93+vec2(8.1,-t*.012)))-.45;
+        float cloud=templeFbm(weather*2.8+warp*3.2);
         float body=smoothstep(.34,.65,cloud);
         float ceiling=exp(-abs(p.y-(5.8+1.8*sin(p.z*.035)))*.19);
         body*=ceiling*(.060+.095*opened);
@@ -1026,9 +1048,9 @@ vec3 templeClouds(vec3 ro,vec3 rd) {
     float nearDistance=clamp((7.10-ro.y)/max(rd.y,.105),10.0,53.0);
     vec3 nearPoint=ro+rd*nearDistance;
     vec2 sheet=nearPoint.xz*.092+vec2(transport*.062,transport*.095);
-    vec2 curl=vec2(fbm(sheet*1.4+vec2(2.7,t*.014)),fbm(sheet*1.37+vec2(9.4,-t*.010)))-.46;
-    float macro=fbm(sheet*2.75+curl*3.8);
-    float fine=noise(sheet*18.0+curl*6.0);
+    vec2 curl=vec2(templeFbm(sheet*1.4+vec2(2.7,t*.014)),templeFbm(sheet*1.37+vec2(9.4,-t*.010)))-.46;
+    float macro=templeFbm(sheet*2.75+curl*3.8);
+    float fine=templeNoise(sheet*18.0+curl*6.0);
     float cloudBank=smoothstep(.34,.65,macro);
     float cloudEdge=exp(-abs(macro-.51)*19.0);
     float lightFace=smoothstep(.41,.66,macro+.055*fine);
