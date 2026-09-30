@@ -23,6 +23,11 @@ the original sample positions, stopping conditions, material order and glow.
   Standalone layer rendering retains caller-state restoration.
 - Flow detail lookahead proves when all three strands cannot beat the current
   minimum. Surviving strand expressions and material priority remain intact.
+- A conservative global flow upper bound rejects whole groups before their
+  strand/detail calculations. Centers are evaluated once, and the original
+  group and material order is retained. The rounding margin is validated for
+  the film's finite time, motion, beat and coordinate domain; other inputs use
+  the original cutoff.
 - Flow particle footprints omit at most 8e-9 accumulated radiance before
   post-processing, avoiding negligible exponential tails.
 - A cathedral spoke bound avoids angular calculations when the radial and
@@ -44,6 +49,12 @@ ms. Its 64-frame lower-resolution comparison had unchanged depth and mostly
 exact color; nine 4K frames had unchanged depth and color differences at most
 2/255. Twenty portrait frames at 540×960, reduced motion .2 and pointer
 [.8,-.7], also passed with unchanged depth and at most 1/255 color differences.
+
+The global flow upper bound reduced four further 4K samples by 9.7–14.6%,
+to 18.0–18.1 ms. Fifty-six lower-resolution frames matched color and encoded
+depth exactly. Nine 4K frames retained identical depth and color differences
+at most 2/255, RMS below .0015. Three million float32 upper-bound samples and
+200,000 group/material-order replays found no bound or selection violations.
 
 Initial integrated changes passed 184 consecutive-frame comparisons across
 23 timestamp windows at 960×540 with unchanged encoded depth. Most color
@@ -105,3 +116,10 @@ A tighter nautilus meridian bound passed image comparisons but regressed the
 heavy shell swarm by 8.2–8.3% at 4K. A CPU ray replay found it rejects only
 0.9–3.4% of the calls surviving the existing sphere guard. The additional
 distance calculations therefore cost more than the detail they avoid.
+
+Per-strand approximate bounds preserved all 56 sampled frames exactly and
+skipped 42–48% of animated strand trig pairs in a CPU ray replay, yet regressed
+4K GPU timing by 6.9–7.5%. Retaining a hit material across the ray loop also
+passed image checks but regressed timing by .4–.5%. Both remain unmerged.
+CPU work counts alone do not establish a GPU speedup: extra bounds, control
+flow, lane divergence and register allocation also matter.
