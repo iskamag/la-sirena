@@ -1,6 +1,6 @@
 # Optional temple cloud hash lattice
 
-This candidate stores the four original hash corners of each integer noise cell
+The renderer stores the four original hash corners of each integer noise cell
 in a static 512×512 RGBA32F texture (4 MiB). The initializer extracts the original
 `hash(vec2)` source from `shaders.js` and writes the lattice in one fullscreen draw.
 Only `templeClouds` uses the new noise/fbm wrappers. They retain the original
@@ -63,6 +63,39 @@ lattice. `dispose()` releases owned resources.
 
 The existing application stops playback on context loss and asks for reload;
 it has no automatic context restoration/reinitialization. A restored context
-must create a new renderer and cache. This candidate remains unmerged until
-separate-program hash equality, image/depth equivalence and texture-fetch costs
-can be checked on hardware. GPU testing is currently suspended.
+must create a new renderer and cache. Hardware comparisons now pass the sampled gates below. Startup timing and
+whole-film performance remain unmeasured.
+
+## Hardware validation and performance
+
+The accepted shader hash is
+`d5d92dddbd5674d4fec4975b4bfffe919e8e3c80e2ca481d32641de8dfed9929`.
+All comparisons use the preceding accepted renderer at `6d9eb5b` as reference.
+Color and encoded depth matched exactly in four initial 640×360 frames,
+14 transition frames at 960×540, three 3840×2160 frames, 46 frames across
+23 integrated windows at 960×540, and eight 540×960 portrait frames with
+motion .2 and pointer [.8,-.7]. All report no GL errors. The portrait report
+confirms cache initialization succeeded for the candidate and was absent in
+the reference. A saved opened-cathedral image was visually inspected.
+These sampled comparisons do not prove equality for every film frame/device.
+
+Small alternating hardware timing runs on RX 6800, with RadeonSI uniform
+inlining disabled, one queued frame and 1000 ms cooldown, measured:
+
+| 4K window | Reference GPU ms | Cache GPU ms | Reduction |
+| --- | ---: | ---: | ---: |
+| Shell 11 s | 14.068 | 14.200 | -0.9% |
+| Flow 35 s | 16.101 | 15.999 | 0.6% |
+| Cathedral 144 s | 20.870 | 18.325 | 12.2% |
+| Cathedral 160 s | 24.552 | 22.152 | 9.8% |
+
+Each side has two blocks of two timed frames per window, plus separately
+paced warmup frames. These are small samples, not sustained 60 FPS or
+whole-film tail-latency evidence. Shell/flow differences are below 1%; their
+statistical significance is unestablished. At 1280×720, two blocks of four
+frames per side measured cathedral reductions of 12.3% and 9.3%. Cathedral
+still exceeds 16.7 ms at 4K. Cooldowns are excluded from GPU timings.
+
+Artifacts are ignored by Git under `artifacts/optimization/noise-cache-*`.
+The accepted production build, cache lifecycle/coverage checks, 352-frame
+render-state checker and profiler scheduling checker passed again after merge.

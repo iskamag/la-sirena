@@ -23,6 +23,11 @@ the original sample positions, stopping conditions, material order and glow.
   their two plates. Surviving expressions and the opened-roof path are retained.
   At 144 s, a small paced 4K comparison measured 23.55→20.83 ms (-11.5%);
   at 160 s the opened path was essentially unchanged. See `ROOF-CLUSTERS.md`.
+- Cathedral cloud noise caches four original hash corners per cell in a
+  static 4 MiB RGBA32F texture. Interpolation and octave arithmetic are retained;
+  unsupported devices and out-of-grid queries use the original hashes.
+  Small paced 4K samples measured another 12.2% closed-roof and 9.8% opened-roof
+  improvement. See `NOISE_CACHE.md` for image checks and measurement scope.
 - Compositor-owned secondary rendering avoids synchronous GL state queries.
   Standalone layer rendering retains caller-state restoration.
 - Flow detail lookahead proves when all three strands cannot beat the current
@@ -125,7 +130,8 @@ It records source hashes, rejects software rendering, and uses disjoint GPU
 timer queries plus completion fences. Timings alternate reference/candidate
 order across four blocks of 24 advancing frames. After sustained batches made
 the shared desktop unresponsive, the profiler now defaults to one queued frame
-and 25 ms of cooldown between timed frames. Each chunk has a separate query;
+and 1000 ms of cooldown between timed frames (increased from 25 ms after
+the renewed freeze report). Each chunk has a separate query;
 GPU averages exclude cooldown, while wall times include it. Reports record
 `scheduling` and per-sample `deliberateWaitMs`. `--max-queued-frames` and
 `--cooldown-ms` control this policy. The historical results above used sustained
@@ -134,8 +140,11 @@ has passed `node scripts/check-profile-scheduling.mjs` for queue limits,
 query sums, sample order, disjoint propagation and fence cleanup;
 small GPU comparisons subsequently resumed with one queued frame and 100 ms
 cooldown. Desktop input latency was not measured. After another user report
-of desktop freezes, all GPU testing was suspended again; CPU-only exploration
-continues. Preparation, warmup and comparison frames now
+of desktop freezes, GPU testing was suspended again. The user subsequently
+authorized resuming GPU rendering. Recent small comparisons use 250–1000 ms
+pauses and one queued frame; timings use 1000 ms. Desktop input latency remains
+unmeasured. Reports now record whether the optional noise cache initialized
+successfully for each side. Preparation, warmup and comparison frames now
 also wait for their completion fence and cooldown. Per-query chunks are recorded
 with their timestamps and frame counts. With one queued frame, summaries include
 `gpuFrameP95Ms` and `gpuFrameMaximumMs`; larger chunks retain averages without

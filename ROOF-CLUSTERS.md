@@ -38,5 +38,6 @@ Driver ISA inspection found unchanged allocation (96 VGPR, 108 SGPR), no
 spills or scratch, and the same compiled maximum of five waves. Generated
 code grew from 363,456 to 417,860 bytes; retaining separate functions has a
 code-size cost. A native 320×180 cathedral frame compiled and rendered without
-GL errors. GPU testing is now suspended following the renewed desktop-freeze
-report; no further hardware validation is implied by CPU-only work.
+GL errors. GPU testing was suspended following the renewed desktop-freeze
+report, then resumed with explicit user authorization and longer frame pauses.
+The later cloud-cache measurements are recorded separately in `NOISE_CACHE.md`.

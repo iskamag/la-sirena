@@ -23,7 +23,7 @@ const blocks = Number(option('blocks', '4'));
 const batch = Number(option('batch', '24'));
 const sequence = Number(option('sequence', '8'));
 const maxQueuedFrames = Number(option('max-queued-frames', '1'));
-const cooldownMs = Number(option('cooldown-ms', '25'));
+const cooldownMs = Number(option('cooldown-ms', '1000'));
 const check = args.includes('--check');
 const saveImages = args.includes('--images');
 const motion = Number(option('motion', '1'));
@@ -65,6 +65,7 @@ window.__profile = {
     if(this.cooldownMs>0)await new Promise(r=>setTimeout(r,this.cooldownMs));
   },
   get gl(){return gl;},
+  features(){return {noiseCacheEnabled:typeof noiseCache!=='undefined'&&Boolean(noiseCache.enabled)};},
   capture(){
     const previous=gl.getParameter(gl.FRAMEBUFFER_BINDING);
     const read=target=>{gl.bindFramebuffer(gl.FRAMEBUFFER,target.framebuffer);const p=new Uint8Array(world.width*world.height*4);gl.readPixels(0,0,world.width,world.height,gl.RGBA,gl.UNSIGNED_BYTE,p);return p;};
@@ -166,6 +167,8 @@ try {
     await page.evaluate(async args => {await document.fonts.ready;window.__profile.configure(...args);}, [width,height,motion,pointer,poster,cooldownMs]);
     pages.push(page);
   }
+  report.features = [];
+  for (const page of pages) report.features.push(await page.evaluate(() => __profile.features()));
   report.renderer = await pages[0].evaluate(() => { const g=__profile.gl,e=g.getExtension('WEBGL_debug_renderer_info');return e?g.getParameter(e.UNMASKED_RENDERER_WEBGL):g.getParameter(g.RENDERER); });
   if (/swiftshader|llvmpipe/i.test(report.renderer)) throw Error(`Hardware GPU required: ${report.renderer}`);
   console.log(JSON.stringify({ mode, width, height, renderer: report.renderer }));
