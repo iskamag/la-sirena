@@ -179,11 +179,15 @@ vec2 shellWorld(vec3 p,bool swarm) {
     }
     if(density()>.01) {
         vec3 center=vec3(-2.00,.68,-.70)+vec3(.12*sin(t*.45),.12*cos(t*.38),0);
-        vec3 q=p-center;q.xz=rot(t*.35+.6)*q.xz;
-        float fragment=torus(q,vec2(.56,.15));
-        fragment=max(fragment,-q.y-.08);
-        fragment+=.007*sin(atan(q.y,q.x)*36.0);
-        if(fragment<d) {d=fragment;mat=4.0;}
+        vec3 q=p-center;
+        // Torus radius .56+.15 plus the maximum downward corrugation .007.
+        if(length(q)-.717-.0001<d) {
+            q.xz=rot(t*.35+.6)*q.xz;
+            float fragment=torus(q,vec2(.56,.15));
+            fragment=max(fragment,-q.y-.08);
+            fragment+=.007*sin(atan(q.y,q.x)*36.0);
+            if(fragment<d) {d=fragment;mat=4.0;}
+        }
         for(int i=0;i<3;i++) {
             float fi=float(i);
             vec3 c=vec3(-1.75,-.86,1.20);
