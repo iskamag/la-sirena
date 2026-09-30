@@ -73,3 +73,20 @@ opened cathedral had maximum final color difference 2/255, with RMS <= .02977.
 This checks the combined geometry, cloud and miss-guide changes in those
 windows, rather than comparing only consecutive candidates. It remains
 sampled evidence. Report: artifacts/optimization/cumulative-original-4k-quality.
+
+Cathedral field lookahead parked
+--------------------------------
+
+Candidate b0e0ca8 in /tmp/mus2-opt-cathedral-field-lookahead remains unmerged.
+CPU replay rejected about 81% of flute, 78% of ring and 72% of window work
+without changing scalar distances. The GPU did not deliver a substantial gain:
+
+| Time | Baseline ms | Candidate ms | Reduction | Candidate maximum ms |
+| --- | ---: | ---: | ---: | ---: |
+| 150.1 | 17.17543 | 16.67087 | 2.94% | 17.58068 |
+| 160 | 15.21574 | 15.42367 | -1.37% | 16.07460 |
+
+Same paired hardware/pacing as the other structural comparisons. No additional
+quality runs or threshold/domain/cache tuning are planned for this candidate.
+Production renderer stays unchanged. CPU field counts are not frame-time proof.
+Report: artifacts/optimization/cathedral-field-lookahead-4k-performance.
