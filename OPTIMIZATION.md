@@ -249,3 +249,20 @@ scaled-coordinate rewrite also failed late-rupture color and encoded depth.
 This led to the accepted separate closed-roof helper in `6d9eb5b`, which keeps
 the original opened function intact and passes the sampled image gates.
 The general hierarchy variants remain unmerged.
+
+A later opened-roof guard (`42d4ddc`, tested with the accepted cloud cache
+as `3569674`) keeps original hash, center, subtraction and sphere-test
+expressions, then bounds each plate vertically before rotations. It passed
+eight 640×360 frames exactly but regressed two paced 1280×720 windows by
+6.8% and 8.7%. Two blocks of four timed frames per side used one queued
+frame, 1000 ms pauses and uniform inlining disabled. It remains unmerged.
+Generic driver diagnostics retain 96 VGPR, 108 SGPR, no spills/scratch and
+five compiled maximum waves. Static vector ALU instructions increased
+62,839→63,703; code size increased 421,140→427,188 bytes. Those counts do
+not measure executed work or establish the runtime cause of the regression.
+
+The shader-cost tool now binds a complete placeholder for the optional hash
+cache sampler and explicitly disables the cache for its single-frame compiler
+diagnostic. This avoids an incomplete-sampler GL error on current revisions.
+With uniform inlining disabled, the generic shader still contains both paths;
+these diagnostics do not measure the enabled cache's rendering performance.

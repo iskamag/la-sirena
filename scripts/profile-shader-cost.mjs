@@ -78,9 +78,24 @@ if (argv.includes('--child')) {
         if (Array.isArray(value)) { if (value.length === 2) gl.uniform2fv(location, value); else gl.uniform4fv(location, value); }
         else gl.uniform1f(location, value);
       }
+      // The generic shader retains the optional cache sampler even when the
+      // diagnostic uses direct hashes. Bind a complete placeholder so current
+      // and pre-cache revisions can both draw without an incomplete sampler.
+      const cacheLocation = gl.getUniformLocation(program, 'u_noiseCache');
+      if (cacheLocation !== null) {
+        gl.activeTexture(gl.TEXTURE0 + 5);
+        const placeholder = gl.createTexture();gl.bindTexture(gl.TEXTURE_2D, placeholder);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.uniform1i(cacheLocation, 5);
+        gl.uniform1f(gl.getUniformLocation(program, 'u_noiseCacheValid'), 0);
+      }
       gl.viewport(0, 0, 320, 180); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.finish();
       const rendererInfo = gl.getExtension('WEBGL_debug_renderer_info');
-      return { renderer: gl.getParameter(rendererInfo?.UNMASKED_RENDERER_WEBGL ?? gl.RENDERER), glError: gl.getError(), translated };
+      return { renderer: gl.getParameter(rendererInfo?.UNMASKED_RENDERER_WEBGL ?? gl.RENDERER), glError: gl.getError(), noiseCacheEnabled: false, translated };
     }, { vertexShader, fragmentShader, frame });
     if (result.glError) throw Error(`GL error ${result.glError}`);
     await writeFile(output, JSON.stringify({ time, scene, flowBoundValid:frame.flowBoundValid, sourceSha256: hash(fragmentShader), ...result }));
