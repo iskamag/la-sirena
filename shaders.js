@@ -47,6 +47,7 @@ uniform float u_seed;
 uniform float u_poster;
 uniform float u_shot;
 uniform float u_density;
+uniform float u_flowBoundValid;
 // chapter age, rupture age, rupture progress, arcade progress
 uniform vec4 u_event;
 // onset, kick, impact, musical pulse phase
@@ -226,7 +227,7 @@ vec2 mapFlow(vec3 p) {
     float t=motionTime(),best=100.0,material=0.0;
     float z=p.z,beat=pulse()*u_motion;
     float radii[4];float upper=100.0;
-    bool bounded=u_time>=0.0&&u_time<=290.0&&u_motion>=0.0&&u_motion<=1.0&&abs(z)<=550.0&&beat>=0.0&&beat<=1.0;
+    bool bounded=u_flowBoundValid>.5;
     float a=z*.24+t*.16,b=z*.42+t*.20,c=z*.52,d=z*.47;
     vec2 qa=vec2(cos(a),sin(a)),qb=vec2(cos(b),sin(b));
     vec2 qc=vec2(cos(c),sin(c)),qd=vec2(cos(d),sin(d));
@@ -240,7 +241,6 @@ vec2 mapFlow(vec3 p) {
         vec2 offset=offsets[i];
         center+=.19*vec2(qc.y*offset.x+qc.x*offset.y,flowQuarter(qd,i).x);
         float r=length(p.xy-center);radii[i]=r;
-        bounded=bounded&&r>=0.0&&r<=64.0;
         float candidate=(sqrt(r*r+.105*.105-r*.105)-.038-.006*beat)*.48+.0001+.0002*.48;
         upper=min(upper,candidate);
     }

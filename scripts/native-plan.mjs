@@ -1,3 +1,4 @@
+import { flowBoundValidity } from '../flow-bounds.js';
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdir, open } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -99,7 +100,7 @@ const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferDa
 const attribute=gl.getAttribLocation(program,'a_position');gl.enableVertexAttribArray(attribute);gl.vertexAttribPointer(attribute,2,gl.FLOAT,false,0,0);
 const uniforms=[...fragmentShader.matchAll(/uniform\s+(\w+)\s+(u_\w+)\s*;/g)].map(([,type,name])=>({type,name:name.slice(2),location:gl.getUniformLocation(program,name)}));
 const layers=new SecondaryLayers(gl),post=new Compositor(gl);layers.resize(width,height);post.resize(width,height);
-const sourceHashes=Object.fromEntries(await Promise.all(['shaders.js','newlayers.js','post.js','newscore.js','choreography.js','graphics.js','scripts/native-graphics.mjs','scripts/native-overlay.py'].map(async file=>[file,hash(await readFile(file))])));
+const sourceHashes=Object.fromEntries(await Promise.all(['shaders.js','flow-bounds.js','newlayers.js','post.js','newscore.js','choreography.js','graphics.js','scripts/native-graphics.mjs','scripts/native-overlay.py'].map(async file=>[file,hash(await readFile(file))])));
 const file=await open(output,'w');
 await file.write(JSON.stringify({type:'init',width,height,sourceHashes,commands:gl.commands})+'\n');
 for(const time of times){
@@ -107,7 +108,7 @@ for(const time of times){
   const descriptor=score.at(time,scoreOptions),{frame}=descriptor;
   const overlay=args['no-overlay']?null:filmSVG(analysis,descriptor,width,height);
   post.begin();gl.useProgram(program);gl.bindVertexArray(vao);
-  const values={...frame,resolution:[width,height]};
+  const values={...frame,resolution:[width,height],flowBoundValid:flowBoundValidity(frame)};
   for(const {type,name,location} of uniforms){
     const value=values[name];assert.notEqual(value,undefined,`Native frame supplies u_${name}`);
     if(type==='float')gl.uniform1f(location,Number(value));
