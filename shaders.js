@@ -425,7 +425,51 @@ float templeTravel() {
     return travel;
 }
 
+float templeRoofClustered(vec3 p,float cutoff) {
+    float opening=rupture();
+    // A conservative bound avoids expensive fragment evaluation below the vault.
+    float bound=max(2.95-p.y,abs(p.x)-5.20);
+    if(bound>.70) return bound;
+    float row=floor((p.z+1.575)/3.15),slab=100.0;
+    // Both moving plates in a cell fit inside this loose axis-aligned box.
+    // Use its L-infinity field to reject the cell before evaluating its hashes.
+    // Inverse rotations give world-y support bounded by
+    // 1.105*abs(sin(beta))+.050+1.525*abs(sin(gamma))+.018.
+    // abs(beta)<=.88*opening and abs(gamma)<=.70*opening.
+    float verticalSupport=min(1.903,.068+2.04*opening);
+    vec3 clusterExtent=vec3(1.903+.82*opening,verticalSupport+1.80*opening,1.903+.575*opening);
+    float clusterY=3.32+3.10*opening+.045*onset()*opening;
+    // The plates move across cell boundaries, so sample the actual nearby pieces.
+    for(int x=-1;x<=1;x++) for(int z=-1;z<=1;z++) {
+        vec2 cell=vec2(float(x),row+float(z));
+        vec3 clusterDelta=abs(p-vec3(cell.x*2.30,clusterY,cell.y*3.15))-clusterExtent;
+        float clusterLower=max(clusterDelta.x,max(clusterDelta.y,clusterDelta.z))*.72;
+        if(clusterLower-.0001>=min(slab,cutoff)) continue;
+        for(int i=0;i<2;i++) {
+            float side=float(i)*2.0-1.0,h=hash(cell+float(i)*19.71);
+            vec3 center=vec3(cell.x*2.30,3.32,cell.y*3.15);
+            center.x+=side*opening*(.54+.28*h);
+            center.y+=opening*(1.30+3.6*h)+.045*onset()*opening;
+            center.z+=(h-.5)*opening*1.15;
+            vec3 q=p-center;
+            // The rounded plate lies in a sphere of radius
+            // length(vec3(1.105,.050,1.525))+.018 <1.903.
+            // The clipping plane can only increase its field value.
+            if((length(q)-1.903)*.72-.0001>=min(slab,cutoff)) continue;
+            q.xz=rot(side*opening*(.16+.43*h))*q.xz;
+            q.xy=rot(side*opening*(.26+.62*h))*q.xy;
+            q.yz=rot((h-.5)*opening*1.4)*q.yz;
+            float piece=box(q,vec3(1.105,.050,1.525))-.018;
+            piece=max(piece,side*(q.x+.63*q.z)+.018+opening*.065);
+            slab=min(slab,piece*.72);
+        }
+    }
+    return slab;
+}
+
 float templeRoof(vec3 p,float cutoff) {
+    // Preserve the original opened-roof expression graph.
+    if(rupture()==0.0) return templeRoofClustered(p,cutoff);
     float opening=rupture();
     // A conservative bound avoids expensive fragment evaluation below the vault.
     float bound=max(2.95-p.y,abs(p.x)-5.20);
