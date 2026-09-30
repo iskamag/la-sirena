@@ -59,6 +59,8 @@ npm run render:native -- --start 135 --duration 72.555 --width 1280 --height 720
 
 This executes the same JavaScript score, secondary layers, compositor and graphic pass. It needs system EGL/GLES3, Cairo, librsvg, Python 3 with NumPy, and `ffmpeg`. Text uses the system's font substitution, so its metrics can differ slightly from the browser. Export is 30fps/CRF18 by default; `--fps`, `--crf`, `--width`, `--height`, `--start` and `--duration` are configurable. The exporter verifies the completed audio/video by decoding to the end. Render reports remain beside the MP4 in a `.render` directory.
 
+`npm run render:4k` exports the full film at 3840×2160 / 60fps with SVT-AV1 preset 6, CRF18, 10-bit BT.709 color, and AAC audio. It streams raw frames directly into FFmpeg. Four encoder threads and a 50ms pause after each GPU frame keep resource use bounded; override these with `--threads` and `--pause-ms`. Native exports also accept `--codec libsvtav1` and `--preset`. Output: `artifacts/la-sirena-4k60-svt-av1.mp4`.
+
 ## Build and verify
 
 ```sh

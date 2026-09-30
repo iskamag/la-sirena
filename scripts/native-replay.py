@@ -161,7 +161,10 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('trace'); parser.add_argument('--out',default='artifacts/native-qa')
     parser.add_argument('--raw',help='Concatenate top-down RGB frames into this file (or - for stdout)')
-    options=parser.parse_args(); out=Path(options.out); out.mkdir(parents=True,exist_ok=True)
+    parser.add_argument('--pause-ms',type=float,default=0,help='Idle after every frame to keep the desktop responsive')
+    options=parser.parse_args();
+    if options.pause_ms<0: parser.error('pause-ms must be nonnegative')
+    out=Path(options.out); out.mkdir(parents=True,exist_ok=True)
     report={'scope':'Exact GLES3 world + SecondaryLayers + Compositor, shared film graphics via SVG/Cairo when supplied; excludes browser controls/audio behavior','frames':[]}
     display=None; raw=None
     overlay_spec=importlib.util.spec_from_file_location('native_overlay',Path(__file__).with_name('native-overlay.py'))
@@ -193,6 +196,7 @@ def main():
                 detail={'index':number,'time':item.get('time'),'state':item.get('state'),'path':str(path) if item.get('capture',True) else None,'renderSeconds':time.perf_counter()-began,'averageLuminance':sum(luminance)/len(luminance),'litFraction':sum(value>8 for value in luminance)/len(luminance),'overlay':bool(item.get('overlay')),'glError':error}
                 report['frames'].append(detail)
                 if item.get('capture',True) or number%30==0: print(json.dumps(detail),file=sys.stderr,flush=True)
+                if options.pause_ms: time.sleep(options.pause_ms/1000)
             report['compiledPrograms']=replay.programs;report['compiledShaders']=replay.shaders;report['drawCalls']=replay.draws
     except Exception as error:
         report['failure']=str(error); raise

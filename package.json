@@ -13,7 +13,8 @@
     "audio:prepare": "python3 scripts/prepare-audio.py",
     "render": "node scripts/render-film.mjs",
     "render:native": "node scripts/render-native.mjs",
-    "render:full": "node scripts/render-native.mjs --full"
+    "render:full": "node scripts/render-native.mjs --full",
+    "render:4k": "node scripts/render-native.mjs --full --width 3840 --height 2160 --fps 60 --codec libsvtav1 --preset 6 --crf 18 --threads 4 --pause-ms 50 --output artifacts/la-sirena-4k60-svt-av1.mp4"
   },
   "type": "module",
   "devDependencies": {
