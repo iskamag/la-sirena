@@ -91,6 +91,8 @@ const samples=[
  {side:0,gpuMs:12,wallMs:102,submitMs:.4,chunks:[{gpuMs:10},{gpuMs:14}]},
  {side:0,gpuMs:10,wallMs:100,submitMs:.2,chunks:[{gpuMs:9},{gpuMs:11}]},
 ];
+assert.throws(()=>summarizeBenchmark([],labels,1),/No benchmark samples/);
+assert.throws(()=>summarizeBenchmark([{...samples[0],chunks:[]}],labels,1),/No frame timings/);
 const summaries=summarizeBenchmark(samples,labels,1);
 assert.deepEqual(summaries,[{side:0,label:'candidate',gpuMs:11,wallMs:101,submitMs:(.4+.2)/2,gpuFrameP95Ms:14,gpuFrameMaximumMs:14}]);
 assert.equal(summaries.at(-1).gpuMs,11,'Single-side budget targets the candidate');
