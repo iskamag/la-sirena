@@ -136,7 +136,7 @@ function render(now = performance.now(), forcedTime = null) {
     gl.useProgram(program);gl.bindVertexArray(fullVAO);
     gl.uniform2f(locations.resolution,world.width,world.height); gl.uniform1f(locations.time,t); gl.uniform1f(locations.scene,scene); gl.uniform1f(locations.local,frame.local); gl.uniform4fv(locations.energy,music.energy); gl.uniform1f(locations.beat,frame.beat); gl.uniform1f(locations.motion,state.motion); gl.uniform2fv(locations.pointer,state.smoothPointer); gl.uniform1f(locations.seed,frame.seed); gl.uniform1f(locations.poster,frame.poster);gl.uniform1f(locations.shot,frame.shot);gl.uniform1f(locations.density,frame.density);gl.uniform4fv(locations.event,frame.event);gl.uniform4fv(locations.audio,frame.audio); gl.drawArrays(gl.TRIANGLES,0,3);
     frame.depthTexture=compositor.captureDepth();frame.depthScale=40;
-    secondaryLayers.render(frame);compositor.finish(frame);
+    secondaryLayers.renderForCompositor(frame);compositor.finish(frame);
     state.world=scene;state.shot=frame.shot;state.event=frame.event;state.catRole=frame.catRole;state.catCount=frame.catCount;
     drawGraphic(t,chapter,music,frame);
     if (state.record) {

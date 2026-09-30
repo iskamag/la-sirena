@@ -116,7 +116,7 @@ for(const time of times){
     else throw Error(`Unimplemented base uniform type:${type}`);
   }
   gl.drawArrays(gl.TRIANGLES,0,3);
-  frame.depthTexture=post.captureDepth();frame.depthScale=40;layers.render(frame);post.finish(frame);
+  frame.depthTexture=post.captureDepth();frame.depthScale=40;layers.renderForCompositor(frame);post.finish(frame);
   const {depthTexture,...state}=frame;
   await file.write(JSON.stringify({type:'frame',time,name:`frame-${time.toFixed(3)}.png`,capture:!args['no-png'],state,overlay,commands:gl.commands})+'\n');
 }

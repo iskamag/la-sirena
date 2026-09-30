@@ -901,7 +901,13 @@ export class SecondaryLayers {
 
   resize(width, height) { this.width = Math.max(1, width); this.height = Math.max(1, height); }
 
-  render(frame = {}) {
+  // The compositor immediately replaces program/VAO and texture units 0–2,
+  // and disables blending, depth testing and culling before its first pass.
+  // Hand it the GL state directly instead of synchronously reading it back.
+  // Standalone render() retains its save/restore contract for other callers.
+  renderForCompositor(frame = {}) { this.render(frame, false); }
+
+  render(frame = {}, restoreState = true) {
     const gl = this.gl;
     if (this.disposed || gl.isContextLost()) return;
     const density = frame.density ?? 1;
@@ -916,7 +922,7 @@ export class SecondaryLayers {
        (role === 3 && scene === 6 && event[1] >= 0 && event[1] < 17.01)) ? 1 : 0;
     const pearlCount = scene === 6 ? 300 : scene === 9 ? 310 : scene === 4 ? 470 : scene === 3 ? 420 : scene === 10 ? 380 : 1050;
     if (density <= 0) return;
-    const previous = {
+    const previous = restoreState ? {
       program: gl.getParameter(gl.CURRENT_PROGRAM), vao: gl.getParameter(gl.VERTEX_ARRAY_BINDING),
       blend: gl.isEnabled(gl.BLEND), depth: gl.isEnabled(gl.DEPTH_TEST), cull: gl.isEnabled(gl.CULL_FACE),
       sourceRGB: gl.getParameter(gl.BLEND_SRC_RGB), destinationRGB: gl.getParameter(gl.BLEND_DST_RGB),
@@ -924,9 +930,9 @@ export class SecondaryLayers {
       equationRGB: gl.getParameter(gl.BLEND_EQUATION_RGB), equationAlpha: gl.getParameter(gl.BLEND_EQUATION_ALPHA),
       depthMask: gl.getParameter(gl.DEPTH_WRITEMASK),
       activeTexture: gl.getParameter(gl.ACTIVE_TEXTURE),
-    };
+    } : null;
     gl.activeTexture(gl.TEXTURE4);
-    previous.texture4 = gl.getParameter(gl.TEXTURE_BINDING_2D);
+    if (previous) previous.texture4 = gl.getParameter(gl.TEXTURE_BINDING_2D);
     gl.bindTexture(gl.TEXTURE_2D, frame.depthTexture ?? this.fallbackDepth);
     gl.enable(gl.BLEND); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.depthMask(false);
     gl.blendEquation(gl.FUNC_ADD);
@@ -995,13 +1001,15 @@ export class SecondaryLayers {
       gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, scene === 6 ? 8 : scene === 3 ? 12 : 24);
     } finally {
-      gl.useProgram(previous.program); gl.bindVertexArray(previous.vao);
-      gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, previous.texture4); gl.activeTexture(previous.activeTexture);
-      gl.blendFuncSeparate(previous.sourceRGB, previous.destinationRGB, previous.sourceAlpha, previous.destinationAlpha);
-      gl.blendEquationSeparate(previous.equationRGB, previous.equationAlpha);
-      gl.depthMask(previous.depthMask);
-      for (const [capability, enabled] of [[gl.BLEND, previous.blend], [gl.DEPTH_TEST, previous.depth], [gl.CULL_FACE, previous.cull]]) {
-        if (enabled) gl.enable(capability); else gl.disable(capability);
+      if (previous) {
+        gl.useProgram(previous.program); gl.bindVertexArray(previous.vao);
+        gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, previous.texture4); gl.activeTexture(previous.activeTexture);
+        gl.blendFuncSeparate(previous.sourceRGB, previous.destinationRGB, previous.sourceAlpha, previous.destinationAlpha);
+        gl.blendEquationSeparate(previous.equationRGB, previous.equationAlpha);
+        gl.depthMask(previous.depthMask);
+        for (const [capability, enabled] of [[gl.BLEND, previous.blend], [gl.DEPTH_TEST, previous.depth], [gl.CULL_FACE, previous.cull]]) {
+          if (enabled) gl.enable(capability); else gl.disable(capability);
+        }
       }
     }
   }
