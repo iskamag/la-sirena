@@ -1,6 +1,6 @@
 // CPU-only cache lifecycle checks. Hardware hash/image equivalence is separate.
 import assert from 'node:assert/strict';
-import { NoiseCache, noiseCacheSide } from '../noise-cache.js';
+import { NoiseCache, noiseCacheSide, cloudFrameCertified } from '../noise-cache.js';
 import { recordingGL } from './native-gl.mjs';
 
 function mock(failure) {
@@ -37,3 +37,30 @@ for(const failure of ['no-api','unsupported','extension','attachment','compile',
     for(const resource of owned)assert.equal(gl.commands.filter(c=>c.op.startsWith('delete')&&c.args[0]?.resource===resource.resource).length,1,'Each retained cache resource is released once');
 }
 console.log('Noise cache capability, initialization-failure, placeholder, scene isolation and lifecycle checks passed.');
+
+// Check the actual per-frame certificate at every boundary; the separate
+// interval proof establishes why certified coordinates fit the texture.
+const certified={scene:3,time:170.125,motion:1,beat:1,seed:12,shot:3,pointer:[-1,1],event:[999,20.415,1,NaN]};
+assert(cloudFrameCertified(certified));
+for(const change of [
+    {time:0,motion:0,beat:0,pointer:[0,0],event:[0,-1e30,-100,0]},
+    {shot:-100.5},{shot:1e30},{seed:-1e30},
+    {event:[NaN,0,1e30,NaN]},
+])assert(cloudFrameCertified({...certified,...change}),'All bounded cameras and irrelevant fields retain certification');
+for(const change of [
+    {scene:1},{time:-Number.MIN_VALUE},{time:170.125+1e-10},{time:NaN},
+    {motion:-1e-10},{motion:1+1e-10},{motion:Infinity},
+    {beat:-1e-10},{beat:1+1e-10},{beat:NaN},
+    {seed:Infinity},{seed:1e300},{shot:NaN},{shot:1e300},
+    {pointer:[-1-1e-10,0]},{pointer:[0,1+1e-10]},{pointer:[NaN,0]},{pointer:null},
+    {event:[0,20.415+1e-10,0,0]},{event:[0,NaN,0,0]},{event:[0,0,Infinity,0]},{event:null},
+])assert(!cloudFrameCertified({...certified,...change}),'Unproved or non-finite inputs retain guarded lookup');
+{
+    const gl=mock(null),cache=new NoiseCache(gl),program=gl.createProgram();
+    const locations={noiseCache:gl.getUniformLocation(program,'u_noiseCache'),noiseCacheValid:gl.getUniformLocation(program,'u_noiseCacheValid')};
+    cache.bind(locations,certified);assert.equal(uniform(gl,'u_noiseCacheValid'),2);
+    cache.bind(locations,{...certified,time:171});assert.equal(uniform(gl,'u_noiseCacheValid'),1);
+    cache.enabled=false;cache.bind(locations,certified);assert.equal(uniform(gl,'u_noiseCacheValid'),0);
+    cache.dispose();
+}
+console.log('Cloud coordinate certificate boundaries and cache flags 0/1/2 passed.');

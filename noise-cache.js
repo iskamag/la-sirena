@@ -17,6 +17,21 @@ void main(){
     fragColor=vec4(hash(i),hash(i+vec2(1,0)),hash(i+vec2(0,1)),hash(i+vec2(1,1)));
 }`;
 
+// Certify the camera/transport inputs once per frame. The interval proof in
+// scripts/check-noise-cache-bounds.py covers every normalized viewing ray,
+// every cathedral camera mode, pointer [-1,1] and these time/age limits.
+// Unusual finite shots still select a default or one of the three bounded
+// camera variants; no shot enumeration is necessary.
+export function cloudFrameCertified(frame) {
+    const {time,motion,beat,seed,shot,pointer,event}=frame;
+    const finiteGPU=value=>Number.isFinite(value)&&Number.isFinite(Math.fround(value));
+    return frame.scene===3&&finiteGPU(time)&&time>=0&&time<=170.125&&
+        finiteGPU(motion)&&motion>=0&&motion<=1&&finiteGPU(beat)&&beat>=0&&beat<=1&&
+        finiteGPU(seed)&&finiteGPU(shot)&&
+        finiteGPU(pointer?.[0])&&Math.abs(pointer[0])<=1&&finiteGPU(pointer?.[1])&&Math.abs(pointer[1])<=1&&
+        finiteGPU(event?.[1])&&event[1]<=20.415&&finiteGPU(event?.[2]);
+}
+
 export class NoiseCache {
     constructor(gl) {
         this.gl=gl;this.enabled=false;
@@ -76,7 +91,7 @@ export class NoiseCache {
     bind(locations,frame) {
         const gl=this.gl,valid=this.enabled&&frame.scene===3;
         gl.activeTexture(gl.TEXTURE0+5);gl.bindTexture(gl.TEXTURE_2D,valid?this.texture:this.fallback);
-        gl.uniform1i(locations.noiseCache,5);gl.uniform1f(locations.noiseCacheValid,valid?1:0);
+        gl.uniform1i(locations.noiseCache,5);gl.uniform1f(locations.noiseCacheValid,valid?(cloudFrameCertified(frame)?2:1):0);
     }
 
     releaseCache() {

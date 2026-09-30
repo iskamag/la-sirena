@@ -1006,6 +1006,10 @@ vec3 shadowField(vec2 uv) {
 float templeNoise(vec2 p) {
     vec2 i = floor(p), f = fract(p);
     f = f * f * (3.0 - 2.0 * f);
+    if(u_noiseCacheValid>1.5) {
+        vec4 h=texelFetch(u_noiseCache,ivec2(i+vec2(256)),0);
+        return mix(mix(h.x,h.y,f.x),mix(h.z,h.w,f.x),f.y);
+    }
     if(u_noiseCacheValid>.5&&all(greaterThanEqual(i,vec2(-256)))&&all(lessThan(i,vec2(256)))) {
         vec4 h=texelFetch(u_noiseCache,ivec2(i+vec2(256)),0);
         return mix(mix(h.x,h.y,f.x),mix(h.z,h.w,f.x),f.y);
