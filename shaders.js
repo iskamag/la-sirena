@@ -448,9 +448,14 @@ float mapCathedral(vec3 p) {
         vec3 window=vec3(q.z,q.y-.27,abs(p.x)-2.20);
         float rose=torus(window,vec2(.57,.024));
         rose=min(rose,torus(window,vec2(.33,.013)));
-        float radius=length(window.xy),angle=atan(window.y,window.x);
-        float spokes=max(abs(sin(angle*6.0))*radius*.6-.013,abs(radius-.38)-.18);
-        spokes=max(spokes,abs(window.z)-.024);
+        float radius=length(window.xy),spokes=100.0;
+        // The angular term cannot be less than -.013. Other maxima can
+        // prove that no spoke is closer than the existing geometry.
+        if(max(max(-.013,abs(radius-.38)-.18),abs(window.z)-.024)-.0001<min(d,rose)) {
+            float angle=atan(window.y,window.x);
+            spokes=max(abs(sin(angle*6.0))*radius*.6-.013,abs(radius-.38)-.18);
+            spokes=max(spokes,abs(window.z)-.024);
+        }
         d=min(d,min(rose,spokes));
         vec3 lantern=q-vec3(0,1.90,.35);
         lantern.xz=rot(motionTime()*.20)*lantern.xz;
