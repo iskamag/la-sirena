@@ -330,3 +330,17 @@ The difference identifies substantial remaining cloud cost; it is not an
 independently additive cost or an accepted quality-preserving optimization.
 Two blocks of four frames per side used one queued frame, 250 ms pauses and
 uniform inlining disabled. Report: `artifacts/optimization/current-cathedral-cloud-cost/bench-1280.json`.
+
+The per-frame cloud hash-cache certificate (`40a1ca8`, `f091ad9`) removes
+repeated cell-range comparisons from certified film frames, retaining guarded
+cached/direct lookup for unusual inputs and the native direct fallback. All
+42 sampled frames matched color and encoded depth exactly, including three
+4K frames, 23 integrated chapter samples and eight portrait/control frames.
+Small paired 4K timings measured 144 s at 18.545 to 18.260 ms (1.54%) and
+160 s at 21.434 to 21.071 ms (1.69%). Each side used two blocks of two
+frames, one queued frame, 1000 ms pauses and uniform inlining disabled;
+feature records confirm certified cache flag 2. Lower-resolution timings
+measured 1.60%/2.12% gains. Build, domain/lifecycle checks and 352-frame
+render-state checks passed after integration. This is a modest sampled gain;
+the 4K60 budget remains unmet. See `NOISE-CACHE-CERTIFICATE.md` for proof
+scope and `artifacts/optimization/noise-certified-*` for reports.

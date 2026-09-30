@@ -72,6 +72,7 @@ window.__profile = {
   get gl(){return gl;},
   features(){return {
     noiseCacheEnabled:typeof noiseCache!=='undefined'&&Boolean(noiseCache.enabled),
+    noiseCacheValidity:typeof noiseCache!=='undefined'?(noiseCache.validity??null):null,
     roofAngleCacheEnabled:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.enabled),
     roofAngleCacheAllowed:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.allowed),
     roofAngleCacheValid:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.valid)

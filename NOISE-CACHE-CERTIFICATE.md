@@ -1,4 +1,4 @@
-# Cathedral cloud noise certificate candidate
+# Cathedral cloud noise certificate
 
 The existing static hash lattice covers integer cells `[-256,255]` on each
 axis. A certified frame sets `u_noiseCacheValid=2`, allowing `templeNoise()` to
@@ -32,6 +32,12 @@ the nearest lattice edge. This includes the direct sheet-fine noise query.
 The cache lifecycle test exercises certificate boundaries, unusual finite
 shots, irrelevant fields, invalid/overflowing inputs and all three flags.
 The interval proof, production build and offline GLSL ES 3.00 linking pass.
-GPU compiler behavior, animated image equivalence and performance remain
-unverified. Changed control flow can affect floating-point code generation;
-the candidate must pass the existing image and encoded-depth gates before use.
+Root GPU gates subsequently passed 42 sampled frames with exact RGBA8 color
+and encoded depth: eight initial cathedral frames, three true-4K frames, 23
+frames across the film and eight portrait/control frames. Paced paired 4K
+tests measured 144 seconds at 18.545 to 18.260 ms (1.54%) and 160 seconds at
+21.434 to 21.071 ms (1.69%). Runtime feature records confirm flag 2 was active.
+These small samples do not establish whole-film 4K60 or universal equivalence.
+The source was integrated in `40a1ca8` and `f091ad9`. Build, cache-domain and
+352-frame render-state checks passed after integration. See `OPTIMIZATION.md`
+and ignored `artifacts/optimization/noise-certified-*` reports for scope.
