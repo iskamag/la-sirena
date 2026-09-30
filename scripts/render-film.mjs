@@ -16,7 +16,7 @@ const fps = Number(option('fps', '30'));
 const crf = Number(option('crf', '20'));
 const output = resolve(option('output', 'artifacts/la-sirena-rupture.mp4'));
 const url = option('url', process.env.FILM_URL || 'http://localhost:5173');
-if (!(duration > 0 && start >= 0 && fps > 0 && width > 0 && height > 0)) throw new Error('Invalid render range or dimensions.');
+if (!(duration > 0 && start >= 0 && fps > 0 && Number.isSafeInteger(width) && Number.isSafeInteger(height) && width > 0 && height > 0)) throw new Error('Invalid render range or dimensions.');
 await mkdir(dirname(output), { recursive: true });
 const temp = output.replace(/\.mp4$/i, '') + '.silent.mp4';
 const software = args.includes('--software');
@@ -31,6 +31,7 @@ try {
   await page.goto(`${url}/?preview=1`, { waitUntil: 'networkidle' });
   await page.waitForFunction(() => window.__film?.ready);
   await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(({width,height}) => window.__film.setExportResolution(width,height), {width,height});
   encoder = spawn('ffmpeg', ['-y','-hide_banner','-loglevel','error','-f','image2pipe','-vcodec',lossless?'png':'mjpeg','-framerate',String(fps),'-i','pipe:0','-an','-c:v','libx264','-preset','fast','-crf',String(crf),'-pix_fmt','yuv420p',temp], { stdio: ['pipe','inherit','inherit'] });
   let encodingError;
   encoder.on('error', (error) => { encodingError = error; });

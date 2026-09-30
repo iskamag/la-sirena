@@ -16,6 +16,7 @@ const qualities = [{ name: 'HQ', scale: 1, max: 1920 }, { name: 'ULTRA', scale: 
 const state = { ready: false, started: false, playing: false, quality: 0, pointer: [0, 0], smoothPointer: [0, 0], motion: reducedMotion.matches ? .2 : 1, width: innerWidth, height: innerHeight, scene: -1, lastTime: 0, lastActive: performance.now(), energy: [0, 0, 0, 0], record: null, recordStart: 0, previewTime: 0 };
 let analysis, score, chapters = [], audioContext, analyser, audioSource, audioDestination, frequencyData, recorder, gl, program, locations, fullVAO, secondaryLayers, compositor, lastFrame = 0, fps = 60, toastTimer;
 const resources = [];
+let exportResolution = null;
 
 function timecode(t) { const s = Math.max(0, Math.floor(t || 0)); return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`; }
 const clamp = (x, min = 0, max = 1) => Math.max(min, Math.min(max, x));
@@ -43,13 +44,13 @@ function createRenderer() {
 }
 
 function resize() {
-  state.width = innerWidth; state.height = innerHeight;
+  state.width = exportResolution?.width ?? innerWidth; state.height = exportResolution?.height ?? innerHeight;
   const quality = qualities[state.quality];
   const scale = Math.min(devicePixelRatio, 1.4) * quality.scale;
   const ratio = Math.min(scale, quality.max / innerWidth);
-  world.width = Math.max(1, Math.round(innerWidth * ratio)); world.height = Math.max(1, Math.round(innerHeight * ratio));
-  const inkScale = Math.min(devicePixelRatio, 2);
-  film.width = Math.round(innerWidth * inkScale); film.height = Math.round(innerHeight * inkScale);
+  world.width = exportResolution?.width ?? Math.max(1, Math.round(innerWidth * ratio)); world.height = exportResolution?.height ?? Math.max(1, Math.round(innerHeight * ratio));
+  const inkScale = exportResolution ? 1 : Math.min(devicePixelRatio, 2);
+  film.width = Math.round(state.width * inkScale); film.height = Math.round(state.height * inkScale);
   ink.setTransform(inkScale, 0, 0, inkScale, 0, 0);
   if (gl) gl.viewport(0, 0, world.width, world.height);
   secondaryLayers?.resize(world.width,world.height);compositor?.resize(world.width,world.height);
@@ -199,6 +200,16 @@ $('app').addEventListener('dblclick',(event)=>{if(event.target.id==='app')fullsc
 // Deterministic rendering hooks for visual QA and offline frame export.
 window.__film = {
   get ready(){return state.ready;}, get state(){return{time:audio.currentTime,playing:state.playing,scene:state.scene,world:state.world,shot:state.shot,event:state.event,catRole:state.catRole,catCount:state.catCount,fps,width:world.width,height:world.height,motion:state.motion};},
+  // Offline dimensions bypass the interactive quality cap, so a 4K export
+  // shades all 4K pixels and draws the graphic layer at the same resolution.
+  setExportResolution(width, height){
+    if (!state.ready || !gl) throw new Error('The film renderer is not ready.');
+    if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0) throw new Error('Export dimensions must be positive integers.');
+    const maxTexture = gl.getParameter(gl.MAX_TEXTURE_SIZE), maxViewport = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+    if (width > maxTexture || height > maxTexture || width > maxViewport[0] || height > maxViewport[1]) throw new Error('Export dimensions exceed the GPU render limits.');
+    exportResolution = {width, height}; state.offline = true; resize();
+    return {width:world.width, height:world.height};
+  },
   get cues(){return score?.cues;},
   get chapters(){return chapters.map(({time,end,name,world})=>({time,end,name,world}));},
   seek:jump, play, pause:()=>audio.pause(), record:startRecording, stopRecording,
