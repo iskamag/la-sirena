@@ -22,6 +22,8 @@ const out = resolve(option('out', 'artifacts/optimization'));
 const blocks = Number(option('blocks', '4'));
 const batch = Number(option('batch', '24'));
 const sequence = Number(option('sequence', '8'));
+const maxQueuedFrames = Number(option('max-queued-frames', '1'));
+const cooldownMs = Number(option('cooldown-ms', '25'));
 const check = args.includes('--check');
 const saveImages = args.includes('--images');
 const motion = Number(option('motion', '1'));
@@ -33,6 +35,7 @@ const maxRMS = Number(option('max-rms', '.05'));
 const budget = Number(option('budget-ms', 'Infinity'));
 const times = JSON.parse(option('times', '[1.5,11,14,20,24,35,58,91,110,129.3,144,150.1,156.6,160,169.9,180,195,215,235,249,270,281,286]'));
 if (![width, height, blocks, batch, sequence].every(n => Number.isInteger(n) && n > 0)) throw Error('Positive integer dimensions/counts required');
+if(!Number.isInteger(maxQueuedFrames)||maxQueuedFrames<1||!Number.isFinite(cooldownMs)||cooldownMs<0) throw Error('Use positive integer max-queued-frames and nonnegative cooldown-ms');
 await mkdir(out, { recursive: true });
 const injection = `
 window.__profile = {
@@ -54,15 +57,27 @@ window.__profile = {
     const encode=p=>{let s='';for(let i=0;i<p.length;i+=8192)s+=String.fromCharCode(...p.subarray(i,i+8192));return btoa(s);};
     return {image:encode(image),base:encode(base),glError:gl.getError()};
   },
-  async timing(start,count){
+  async timing(start,count,maxQueuedFrames,cooldownMs){
     const ext=gl.getExtension('EXT_disjoint_timer_query_webgl2');if(!ext)throw Error('Hardware GPU timer unavailable');
     const drain=async()=>{const fence=gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE,0);gl.flush();let began=performance.now();for(;;){const status=gl.clientWaitSync(fence,0,0);if(status===gl.ALREADY_SIGNALED||status===gl.CONDITION_SATISFIED)break;if(status===gl.WAIT_FAILED||performance.now()-began>30000)throw Error('GPU completion fence failed');await new Promise(r=>setTimeout(r,0));}gl.deleteSync(fence);};
-    await drain();const q=gl.createQuery(),began=performance.now();gl.beginQuery(ext.TIME_ELAPSED_EXT,q);
-    for(let i=0;i<count;i++)render(performance.now(),start+i/60);
-    gl.endQuery(ext.TIME_ELAPSED_EXT);const submit=performance.now()-began;await drain();const wall=performance.now()-began;
-    while(!gl.getQueryParameter(q,gl.QUERY_RESULT_AVAILABLE))await new Promise(r=>setTimeout(r,0));
-    const gpu=gl.getQueryParameter(q,gl.QUERY_RESULT)/1e6,disjoint=gl.getParameter(ext.GPU_DISJOINT_EXT);gl.deleteQuery(q);
-    return {gpuMs:gpu/count,wallMs:wall/count,submitMs:submit/count,disjoint,glError:gl.getError()};
+    await drain();const began=performance.now();let gpu=0,submit=0,disjoint=false,deliberateWait=0;
+    for(let offset=0;offset<count;offset+=maxQueuedFrames){
+      const q=gl.createQuery(),queued=Math.min(maxQueuedFrames,count-offset),submitted=performance.now();
+      gl.beginQuery(ext.TIME_ELAPSED_EXT,q);
+      for(let i=0;i<queued;i++)render(performance.now(),start+(offset+i)/60);
+      gl.endQuery(ext.TIME_ELAPSED_EXT);submit+=performance.now()-submitted;
+      await drain();
+      while(!gl.getQueryParameter(q,gl.QUERY_RESULT_AVAILABLE))await new Promise(r=>setTimeout(r,0));
+      gpu+=gl.getQueryParameter(q,gl.QUERY_RESULT)/1e6;
+      disjoint=disjoint||gl.getParameter(ext.GPU_DISJOINT_EXT);gl.deleteQuery(q);
+      // Pause outside the GPU query so desktop breathing room is not counted
+      // as shader work. Bound queue depth before submitting the next chunk.
+      if(offset+queued<count&&cooldownMs>0){
+        const waiting=performance.now();await new Promise(r=>setTimeout(r,cooldownMs));
+        deliberateWait+=performance.now()-waiting;
+      }
+    }
+    return {gpuMs:gpu/count,wallMs:(performance.now()-began)/count,submitMs:submit/count,deliberateWaitMs:deliberateWait/count,disjoint,glError:gl.getError()};
   }
 };`;
 
@@ -124,6 +139,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 const report = { mode, width, height, motion, pointer, poster, driverOptions: {radeonsiInlineUniforms:process.env.radeonsi_inline_uniforms??null,amdDebug:process.env.AMD_DEBUG??null,mesaShaderCacheDisable:process.env.MESA_SHADER_CACHE_DISABLE??null}, baseline: { root: baselineRoot, ref: baselineRef, sources: servers[0].sources }, candidate: {root,sources:servers[1].sources}, checks: {enabled:check,maxDifference,maxRMS,budget:Number.isFinite(budget)?budget:null}, results: [] };
 try {
   const pages = [];
+  report.scheduling = {maxQueuedFrames,cooldownMs,wallIncludesCooldown:true};
   for (const { url } of servers) {
     const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
     await page.addInitScript(() => { window.requestAnimationFrame = () => 0; });
@@ -162,7 +178,7 @@ try {
         for (const side of block % 2 ? [1,0] : [0,1]) {
           const page = pages[side];
           await page.evaluate(t=>{__profile.reset();for(let i=0;i<4;i++)__profile.frame(t+i/60);},time-4/60);
-          result.samples.push({ side, block, ...await page.evaluate(([t,n])=>__profile.timing(t,n),[time,batch]) });
+          result.samples.push({ side, block, ...await page.evaluate(([t,n,q,c])=>__profile.timing(t,n,q,c),[time,batch,maxQueuedFrames,cooldownMs]) });
         }
       }
       result.summary = [0,1].map(side=>({side,...Object.fromEntries(['gpuMs','wallMs','submitMs'].map(key=>[key,median(result.samples.filter(s=>s.side===side).map(s=>s[key]))]))}));

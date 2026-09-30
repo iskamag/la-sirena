@@ -115,7 +115,16 @@ the selected world and shot, and explicit Mesa driver diagnostic options.
 and candidate PNGs, flipped from GL's bottom-first rows for visual inspection.
 It records source hashes, rejects software rendering, and uses disjoint GPU
 timer queries plus completion fences. Timings alternate reference/candidate
-order across four blocks of 24 advancing frames. Comparisons reset temporal
+order across four blocks of 24 advancing frames. After sustained batches made
+the shared desktop unresponsive, the profiler now defaults to one queued frame
+and 25 ms of cooldown between timed frames. Each chunk has a separate query;
+GPU averages exclude cooldown, while wall times include it. Reports record
+`scheduling` and per-sample `deliberateWaitMs`. `--max-queued-frames` and
+`--cooldown-ms` control this policy. The historical results above used sustained
+queues; paced results may differ as clock and load conditions change. Scheduling
+has passed a CPU mock check for queue limits, query sums and sample order;
+its live desktop responsiveness remains unverified. No further GPU runs were
+started after the freeze report. Comparisons reset temporal
 history, warm up two frames, then inspect eight consecutive graded-color and
 base-depth frames per timestamp. Depth is the renderer's RGBA8 alpha encoding.
 Graphics/text overlay pixels are outside this comparison; their source is
