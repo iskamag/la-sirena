@@ -228,22 +228,31 @@ vec2 mapFlow(vec3 p) {
         // Keep a rounding margin; all surviving field arithmetic is unchanged.
         float boundRadius=max(.233,max(.143+.006*beat,.106+.016*beat));
         if((length(body)-boundRadius)*.48-.0001>=best) continue;
-        for(int j=0;j<3;j++) {
-            float fj=float(j),helix=z*2.35+fj*TAU/3.0+phase-t*.30;
-            vec2 q=body-.105*vec2(cos(helix),sin(helix));
-            float ribbon=(length(q)-.038-.006*beat)*.48;
-            if(ribbon<best) {best=ribbon;material=fi;}
-        }
-        if(density()>.01) {
+        bool detail=density()>.01;
+        float cell=0.0,link=0.0,thread=0.0,cutoff=best;
+        if(detail) {
             float cellZ=mod(z+fi*.76+1.5,3.0)-1.5;
-            float cell=length(vec3(body,cellZ))-.106-.016*beat;
-            if(cell*.48<best) {best=cell*.48;material=4.0+fi;}
+            cell=length(vec3(body,cellZ))-.106-.016*beat;
             float linkZ=mod(z+fi*.51+1.4,2.8)-1.4;
-            float link=length(vec2(length(body)-.18,linkZ))-.010;
-            if(link*.48<best) {best=link*.48;material=8.0+fi;}
+            link=length(vec2(length(body)-.18,linkZ))-.010;
             float helix=z*3.6+phase+t*.42;
             vec2 filament=body-.224*vec2(cos(helix),sin(helix));
-            float thread=(length(filament)-.009)*.48;
+            thread=(length(filament)-.009)*.48;
+            cutoff=min(best,min(cell*.48,min(link*.48,thread)));
+        }
+        // Look ahead at detail distances without choosing their materials yet.
+        // The margin keeps potential strand/detail ties in the original order.
+        if((length(body)-(.143+.006*beat))*.48-.0001<cutoff) {
+            for(int j=0;j<3;j++) {
+                float fj=float(j),helix=z*2.35+fj*TAU/3.0+phase-t*.30;
+                vec2 q=body-.105*vec2(cos(helix),sin(helix));
+                float ribbon=(length(q)-.038-.006*beat)*.48;
+                if(ribbon<best) {best=ribbon;material=fi;}
+            }
+        }
+        if(detail) {
+            if(cell*.48<best) {best=cell*.48;material=4.0+fi;}
+            if(link*.48<best) {best=link*.48;material=8.0+fi;}
             if(thread<best) {best=thread;material=8.0+fi;}
         }
     }
