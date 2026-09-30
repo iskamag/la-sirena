@@ -51,6 +51,8 @@ uniform float u_density;
 uniform float u_flowBoundValid;
 uniform sampler2D u_noiseCache;
 uniform float u_noiseCacheValid;
+uniform sampler2D u_cloudVolume;
+uniform float u_cloudVolumeValid;
 // chapter age, rupture age, rupture progress, arcade progress
 uniform vec4 u_event;
 // onset, kick, impact, musical pulse phase
@@ -1036,6 +1038,9 @@ vec3 templeClouds(vec3 ro,vec3 rd) {
     vec3 sunDir=normalize(vec3(-.24,.20,1.0));
     float sun=pow(max(dot(rd,sunDir),0.0),28.0);
     c+=vec3(.73,.26,.08)*sun*(.35+.65*opened);
+    if(u_cloudVolumeValid>.5) {
+        c+=texture(u_cloudVolume,gl_FragCoord.xy/u_resolution).rgb;
+    } else {
     float transmittance=1.0;
     for(int i=0;i<12;i++) {
         float fi=float(i),distance=9.0+fi*3.5;
@@ -1053,6 +1058,7 @@ vec3 templeClouds(vec3 ro,vec3 rd) {
         lit+=vec3(.023,.19,.24)*storm*edge*.44;
         c+=lit*body*transmittance*1.95;
         transmittance*=1.0-body;
+    }
     }
     // A nearby folded cloud sheet supplies crisp billows over the distant volume.
     float nearDistance=clamp((7.10-ro.y)/max(rd.y,.105),10.0,53.0);
@@ -1632,5 +1638,32 @@ void main() {
     float grain=(hash(gl_FragCoord.xy+fract(u_time)*107.0)-.5)*.007;
     color+=grain*(.4+.6*sqrt(max(color.r,max(color.g,color.b))));
     fragColor=vec4(clamp(color,0.0,1.0),clamp(g_depth/40.0,0.0,1.0));
+}
+`;
+
+// Experimental: only the distant volume is sampled at reduced resolution.
+const volumeStart = fragmentShader.indexOf('    float transmittance=1.0;', fragmentShader.indexOf('vec3 templeClouds'));
+const volumeEnd = fragmentShader.indexOf('    }\n    // A nearby folded', volumeStart);
+const volumeLoop = fragmentShader.slice(volumeStart,volumeEnd);
+const cameraStart = fragmentShader.indexOf('vec3 rayWorld(vec2 uv,int scene) {');
+const cameraEnd = fragmentShader.indexOf('    vec3 bg=',cameraStart);
+export const cloudVolumeFragment = fragmentShader.slice(0,cameraStart) + `
+uniform vec2 u_volumeResolution;
+vec3 distantVolume(vec3 ro,vec3 rd) {
+    float opened=rupture(),t=motionTime();
+    float storm=smoothstep(6.805,8.0,u_event.y);
+    float transport=t*.14+max(u_event.y,0.0)*2.35*u_motion;
+    float sun=pow(max(dot(rd,normalize(vec3(-.24,.20,1.0))),0.0),28.0);
+    vec3 c=vec3(0);
+${volumeLoop}
+    return c;
+}
+` + fragmentShader.slice(cameraStart,cameraEnd) + `
+    return distantVolume(ro,rd);
+}
+void main(){
+    vec2 pixel=gl_FragCoord.xy*u_resolution/u_volumeResolution;
+    vec2 uv=(pixel-.5*u_resolution)/u_resolution.y;
+    fragColor=vec4(rayWorld(uv,3),1.0);
 }
 `;
