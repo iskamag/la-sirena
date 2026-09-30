@@ -218,6 +218,7 @@ vec2 mapFlow(vec3 p) {
     float t=motionTime(),best=100.0,material=0.0;
     float z=p.z,beat=pulse()*u_motion;
     vec2 bodies[4];float radii[4];float upper=100.0;
+    bool bounded=u_time>=0.0&&u_time<=290.0&&u_motion>=0.0&&u_motion<=1.0&&abs(z)<=550.0&&beat>=0.0&&beat<=1.0;
     // Three strands are separated by 120 degrees, so at least one center
     // lies within 60 degrees of the radial direction. Its distance bounds
     // the field from above without choosing or reordering any materials.
@@ -228,10 +229,13 @@ vec2 mapFlow(vec3 p) {
         vec2 center=vec2(cos(angle)*radius*1.33,sin(angle)*radius);
         center+=.19*vec2(sin(z*.52+phase*1.7),cos(z*.47+phase));
         bodies[i]=p.xy-center;radii[i]=length(bodies[i]);
-        float r=radii[i];
+        float r=radii[i];bounded=bounded&&r>=0.0&&r<=64.0;
         float candidate=(sqrt(r*r+.105*.105-r*.105)-.038-.006*beat)*.48+.0001;
         upper=min(upper,candidate);
     }
+    // The rounding margin is validated over the film's finite input domain.
+    // Outside it, preserve the original cutoff and complete material ordering.
+    if(!bounded) upper=100.0;
     for(int i=0;i<4;i++) {
         float fi=float(i),phase=fi*TAU/4.0;
         vec2 body=bodies[i];
