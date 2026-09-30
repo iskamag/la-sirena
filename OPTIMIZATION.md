@@ -23,6 +23,10 @@ the original sample positions, stopping conditions, material order and glow.
   Standalone layer rendering retains caller-state restoration.
 - Flow detail lookahead proves when all three strands cannot beat the current
   minimum. Surviving strand expressions and material priority remain intact.
+- Flow particle footprints omit at most 8e-9 accumulated radiance before
+  post-processing, avoiding negligible exponential tails.
+- A cathedral spoke bound avoids angular calculations when the radial and
+  axial constraints already prove that the spokes cannot win.
 - Browser exports explicitly allocate the requested dimensions. Previously a
   4K viewport could still render the world at the HQ 1920-pixel cap.
 
@@ -31,6 +35,15 @@ Before flow lookahead, full-graph 3840×2160 GPU measurements improved from
 26.5 ms in the cathedral at selected heavy timestamps. Flow lookahead alone
 then reduced four flow samples by another 7.1–8.7%, to 21.0–22.2 ms.
 The 16.7 ms budget for 4K60 remains unmet in heavy scenes.
+
+Particle footprint culling reduced four flow samples by a further 3.9–4.3%,
+to 19.5–21.1 ms at 4K. It passed 112 lower-resolution frames and eight 4K
+frames with unchanged encoded depth; color differences were at most 2/255.
+The cathedral spoke bound reduced three 4K samples by 2.5–4.0%, to 21.6–25.6
+ms. Its 64-frame lower-resolution comparison had unchanged depth and mostly
+exact color; nine 4K frames had unchanged depth and color differences at most
+2/255. Twenty portrait frames at 540×960, reduced motion .2 and pointer
+[.8,-.7], also passed with unchanged depth and at most 1/255 color differences.
 
 Initial integrated changes passed 184 consecutive-frame comparisons across
 23 timestamp windows at 960×540 with unchanged encoded depth. Most color
@@ -67,6 +80,14 @@ Optional `--budget-ms` checks the candidate median GPU timing. Artifacts are
 ignored by Git. The checks deliberately distinguish sampled color tolerances
 from exact equality.
 
+`--motion` selects a value in [0,1], `--pointer` accepts a JSON pair in [-1,1],
+and `--poster` exercises the landing film state. These settings are recorded
+in the report. For example:
+
+```sh
+npm run profile:render -- --baseline-ref b4bac57 --mode compare --width 540 --height 960 --motion .2 --pointer '[0.8,-0.7]' --times '[11,35,144,160,169.9]' --sequence 4 --check
+```
+
 ## Rejected or unmerged experiments
 
 Larger flow steps and fewer cloud samples changed visible highlights or cloud
@@ -79,3 +100,8 @@ rupture; separate shader compilation can change floating-point hash and rotation
 results even with RGBA32F storage. Per-scene specialization also failed the
 strict gate, with isolated depth changes in flow and arcade scenes, and remains
 unmerged.
+
+A tighter nautilus meridian bound passed image comparisons but regressed the
+heavy shell swarm by 8.2–8.3% at 4K. A CPU ray replay found it rejects only
+0.9–3.4% of the calls surviving the existing sphere guard. The additional
+distance calculations therefore cost more than the detail they avoid.

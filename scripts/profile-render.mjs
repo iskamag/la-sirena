@@ -23,6 +23,10 @@ const blocks = Number(option('blocks', '4'));
 const batch = Number(option('batch', '24'));
 const sequence = Number(option('sequence', '8'));
 const check = args.includes('--check');
+const motion = Number(option('motion', '1'));
+const pointer = JSON.parse(option('pointer', '[0,0]'));
+const poster = args.includes('--poster');
+if (!Number.isFinite(motion) || motion < 0 || motion > 1 || !Array.isArray(pointer) || pointer.length !== 2 || pointer.some(n => !Number.isFinite(n) || Math.abs(n) > 1)) throw Error('Motion must be in [0,1] and pointer must contain two values in [-1,1]');
 const maxDifference = Number(option('max-difference', '2'));
 const maxRMS = Number(option('max-rms', '.05'));
 const budget = Number(option('budget-ms', 'Infinity'));
@@ -31,8 +35,8 @@ if (![width, height, blocks, batch, sequence].every(n => Number.isInteger(n) && 
 await mkdir(out, { recursive: true });
 const injection = `
 window.__profile = {
-  configure(width,height) {
-    state.started=true;state.offline=true;state.pointer=[0,0];state.smoothPointer=[0,0];
+  configure(width,height,motion,pointer,poster) {
+    state.started=!poster;state.offline=true;state.motion=motion;state.pointer=[...pointer];state.smoothPointer=[...pointer];
     getMusic=(t,dt)=>score.musicAt(t);
     world.width=width;world.height=height;
     secondaryLayers.resize(width,height);compositor.resize(width,height);
@@ -100,7 +104,7 @@ function difference(a, b) {
 const median = values => { const a = [...values].sort((x, y) => x - y);return (a[Math.floor((a.length - 1) / 2)] + a[Math.floor(a.length / 2)]) / 2; };
 const servers = [await serve(baselineRoot, baselineRef), await serve(root, null)];
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--use-gl=angle', '--use-angle=gl', '--ignore-gpu-blocklist', '--disable-background-timer-throttling'] });
-const report = { mode, width, height, baseline: { root: baselineRoot, ref: baselineRef, sources: servers[0].sources }, candidate: {root,sources:servers[1].sources}, checks: {enabled:check,maxDifference,maxRMS,budget:Number.isFinite(budget)?budget:null}, results: [] };
+const report = { mode, width, height, motion, pointer, poster, baseline: { root: baselineRoot, ref: baselineRef, sources: servers[0].sources }, candidate: {root,sources:servers[1].sources}, checks: {enabled:check,maxDifference,maxRMS,budget:Number.isFinite(budget)?budget:null}, results: [] };
 try {
   const pages = [];
   for (const { url } of servers) {
@@ -108,7 +112,7 @@ try {
     await page.addInitScript(() => { window.requestAnimationFrame = () => 0; });
     await page.goto(`${url}/?preview`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => window.__film?.ready, null, { timeout: 60000 });
-    await page.evaluate(async ([w,h]) => {await document.fonts.ready;window.__profile.configure(w,h);}, [width,height]);
+    await page.evaluate(async args => {await document.fonts.ready;window.__profile.configure(...args);}, [width,height,motion,pointer,poster]);
     pages.push(page);
   }
   report.renderer = await pages[0].evaluate(() => { const g=__profile.gl,e=g.getExtension('WEBGL_debug_renderer_info');return e?g.getParameter(e.UNMASKED_RENDERER_WEBGL):g.getParameter(g.RENDERER); });
