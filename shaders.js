@@ -156,10 +156,11 @@ vec2 shellWorld(vec3 p,bool swarm) {
     float t=motionTime(), d=100.0, mat=0.0;
     if(!swarm) {d=nautilus(p,u_seed+u_shot*.37);}
     else {
-        // Rotations preserve radius. The shell field is >= |q| minus
-        // major (1.06), axial offset (.20), tube (.465), corrugation (.017).
+        // Rotations preserve radius. The meridian center's radius is at most
+        // sqrt(1.06^2+.20^2); adding tube (.465) and corrugation (.017)
+        // gives <1.561. Round outward to keep the bound conservative.
         // Also cover the independently animated central pearl.
-        float boundRadius=max(1.742,.375+.025*pulse()*u_motion*(1.0-u_poster));
+        float boundRadius=max(1.562,.375+.025*pulse()*u_motion*(1.0-u_poster));
         for(int i=0;i<4;i++) {
             float fi=float(i);
             vec3 center=vec3(0);float size=1.0;
