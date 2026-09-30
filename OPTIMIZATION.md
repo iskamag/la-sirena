@@ -85,6 +85,12 @@ found no violations. Cathedral performance still exceeds the 4K60 budget.
 Native GLES compilation and three full render-graph frames (shell, flow and
 cathedral) completed with no GL errors; the production build also passed.
 
+A subsequent 23-window 4K audit (two blocks of 60 advancing frames) found
+sampled shell windows below budget, flow at 16.78–16.86 ms, and cathedral
+windows at 24.50–25.49 ms. The 169.9-second window crosses the chapter cut,
+so its 18.10 ms average mixes scenes. Other sampled windows were below
+16.7 ms. This sparse audit does not establish whole-film frame-time tails.
+
 Initial integrated changes passed 184 consecutive-frame comparisons across
 23 timestamp windows at 960×540 with unchanged encoded depth. Most color
 frames matched exactly; flow had differences up to 2/255, RMS below .034.
@@ -161,6 +167,12 @@ A simplified closed-roof helper preserved the opened roof's original source
 but still changed one encoded-depth pixel in each of two early windows.
 A static roof hash cache reduced two 4K timings by only 1.7–2.5% and retained
 its previously observed late-rupture image failure. Neither is merged.
+
+Simple screen tiling split only the main draw into four 2×2 scissor rectangles,
+retaining the full viewport, shader and pixel coordinates. Four alternating
+blocks of 120 frames at 4K found less than .01% timing difference in shell,
+flow and cathedral (14.92, 16.50 and 25.48 ms respectively). It remains an
+unmerged diagnostic branch; useful tiling would need to eliminate shared work.
 
 A tighter nautilus meridian bound passed image comparisons but regressed the
 heavy shell swarm by 8.2–8.3% at 4K. A CPU ray replay found it rejects only
