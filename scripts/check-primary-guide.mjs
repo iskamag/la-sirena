@@ -15,8 +15,11 @@ assert(primaryGuideFragment.includes('gl_FragCoord.xy*u_resolution/u_primaryGuid
 assert(primaryGuideFragment.includes('for(int i=0;i<60;i++)'));
 const frame={scene:3,time:160,motion:1,beat:0,pointer:[0,0],event:[23.9,10.29,1,0],audio:[0,0,0,0],energy:[0,0,0,0],local:.7,seed:0,poster:0,shot:0,density:1};
 assert(primaryGuideEligible(frame,1440));assert(primaryGuideEligible({...frame,time:156.515},1440));
+assert(primaryGuideEligible({...frame,time:151,event:[14.9,1.29,.1776171875,0]},1440));
+assert(primaryGuideEligible({...frame,time:152,event:[15.9,2.29,.4648775674,0]},2160));
+assert(!primaryGuideEligible({...frame,time:150.99999},2160));
 assert(!primaryGuideEligible(frame,1439));assert.equal(primaryGuideMinimumHeight,1440);
-for(const change of [{scene:1},{time:156.515-1e-8},{time:170.126},{event:[0,0,.9999999,0]},{event:[NaN,0,1,0]},{motion:1.01},{beat:-.01},{pointer:[1.01,0]},{poster:1},{density:NaN},{density:1.01},{shot:Infinity}])assert(!primaryGuideEligible({...frame,...change},2160));
+for(const change of [{scene:1},{time:151-1e-8},{time:170.126},{event:[0,0,0,0]},{event:[NaN,0,1,0]},{motion:1.01},{beat:-.01},{pointer:[1.01,0]},{poster:1},{density:NaN},{density:1.01},{shot:Infinity}])assert(!primaryGuideEligible({...frame,...change},2160));
 function mock(failure){
  const gl=recordingGL(2561,1441);gl.NO_ERROR=0;gl.RGBA32F=34836;
  if(failure!=='no-api')gl.getExtension=()=>{if(failure==='extension')throw Error('No extension');return failure==='unsupported'?null:{};};
@@ -64,4 +67,4 @@ for(const failure of [null,'compile','link','attribute-api']){
  const programs=gl.commands.filter(c=>c.op==='createProgram').map(c=>c.result);
  for(const program of programs)assert.equal(gl.commands.filter(c=>c.op==='deleteProgram'&&c.args[0].resource===program).length,1);
 }
-console.log('Frozen production/guide source hashes, opened/high-resolution eligibility, stale validity, capability/draw fallback, compatible attribute binding and resource cleanup passed.');
+console.log('Frozen production/guide source hashes, partial/opened high-resolution eligibility, stale validity, capability/draw fallback, compatible attribute binding and resource cleanup passed.');

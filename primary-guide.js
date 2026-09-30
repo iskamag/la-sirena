@@ -5,7 +5,7 @@ export const primaryGuideMinimumHeight = 1440;
 const finiteGPU=value=>Number.isFinite(value)&&Number.isFinite(Math.fround(value));
 export function primaryGuideEligible(frame,height) {
     return height>=primaryGuideMinimumHeight&&cloudFrameCertified(frame)&&
-        frame.time>=156.515&&frame.event[2]>=1&&frame.poster===0&&
+        frame.time>=151&&frame.event[2]>0&&frame.poster===0&&
         finiteGPU(frame.density)&&frame.density>=0&&frame.density<=1&&
         finiteGPU(frame.event[0]);
 }
