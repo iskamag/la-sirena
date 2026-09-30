@@ -344,3 +344,14 @@ measured 1.60%/2.12% gains. Build, domain/lifecycle checks and 352-frame
 render-state checks passed after integration. This is a modest sampled gain;
 the 4K60 budget remains unmet. See `NOISE-CACHE-CERTIFICATE.md` for proof
 scope and `artifacts/optimization/noise-certified-*` for reports.
+
+Roof winner-first dispatch (`9663fce`) retained fixed x/z/i expressions and
+used the previous plate/row to tighten the existing sphere guards. CPU replay
+saved 46–50% of opened plate calculations with unchanged capped fields. GPU
+checks nevertheless failed at 169.9 s: maximum color difference 10/255 and
+five encoded-depth changes. Earlier frames were exact or differed by at most
+1/255. A small paced 1280x720 160 s timing regressed 2.654 to 2.936 ms
+(10.6%), so the candidate remains unmerged and precision repair is not
+justified by this measured result. Two blocks of four frames per side used
+one queued frame, 250 ms pauses and uniform inlining disabled. Reports:
+`artifacts/optimization/roof-winner-paced-*`.
