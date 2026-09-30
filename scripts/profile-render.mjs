@@ -72,8 +72,12 @@ async function serve(directory, ref) {
     return cache.get(name);
   };
   const sources = {};
-  for (const name of ['main.js','shaders.js','newlayers.js','post.js','graphics.js','newscore.js','public/track-analysis.json']) {
+  for (const name of ['main.js','shaders.js','newlayers.js','post.js','graphics.js','newscore.js','choreography.js','public/track-analysis.json']) {
     sources[name] = createHash('sha256').update(await get(name)).digest('hex');
+  }
+  for (const name of ['flow-bounds.js','shell-bound.js','roof-cache.js']) {
+    try { sources[name] = createHash('sha256').update(await get(name)).digest('hex'); }
+    catch(error) { if ((await get('main.js')).toString().includes(`'./${name}'`)) throw error; }
   }
   const server = createServer(async (req, res) => {
     try {
@@ -104,7 +108,7 @@ function difference(a, b) {
 const median = values => { const a = [...values].sort((x, y) => x - y);return (a[Math.floor((a.length - 1) / 2)] + a[Math.floor(a.length / 2)]) / 2; };
 const servers = [await serve(baselineRoot, baselineRef), await serve(root, null)];
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--use-gl=angle', '--use-angle=gl', '--ignore-gpu-blocklist', '--disable-background-timer-throttling'] });
-const report = { mode, width, height, motion, pointer, poster, baseline: { root: baselineRoot, ref: baselineRef, sources: servers[0].sources }, candidate: {root,sources:servers[1].sources}, checks: {enabled:check,maxDifference,maxRMS,budget:Number.isFinite(budget)?budget:null}, results: [] };
+const report = { mode, width, height, motion, pointer, poster, driverOptions: {radeonsiInlineUniforms:process.env.radeonsi_inline_uniforms??null,amdDebug:process.env.AMD_DEBUG??null,mesaShaderCacheDisable:process.env.MESA_SHADER_CACHE_DISABLE??null}, baseline: { root: baselineRoot, ref: baselineRef, sources: servers[0].sources }, candidate: {root,sources:servers[1].sources}, checks: {enabled:check,maxDifference,maxRMS,budget:Number.isFinite(budget)?budget:null}, results: [] };
 try {
   const pages = [];
   for (const { url } of servers) {
@@ -124,6 +128,7 @@ try {
       __profile.frame(t);
       if (__film.prepareScene && !await __film.prepareScene(__film.state.world)) throw Error('Scene specialization failed');
     },time);
+    Object.assign(result,await pages[1].evaluate(()=>({world:__film.state.world,shot:__film.state.shot})));
     if (mode === 'compare') {
       for (const page of pages) await page.evaluate(() => __profile.reset());
       result.frames = [];

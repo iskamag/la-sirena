@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createFilmScore } from '../newscore.js';
+import { flowBoundValidity } from '../flow-bounds.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const argv = process.argv.slice(2);
@@ -51,6 +52,7 @@ if (argv.includes('--child')) {
   if (argv.includes('--specialize') && fragmentShader === dynamicFragment) throw Error('Could not find scene dispatch to specialize.');
   const analysis = JSON.parse(await readFile(resolve(root, 'public/track-analysis.json'), 'utf8'));
   const frame = createFilmScore(analysis).at(time, { scene }).frame;
+  frame.flowBoundValid = flowBoundValidity({...frame,motion:1,pointer:[0,0]});
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--use-gl=angle', '--use-angle=gl', '--ignore-gpu-blocklist', '--disable-background-timer-throttling', '--disable-gpu-shader-disk-cache', '--enable-logging=stderr'] });
   try {
     const page = await browser.newPage({ viewport: { width: 320, height: 180 } });
@@ -70,7 +72,7 @@ if (argv.includes('--child')) {
       const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
       const buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
       gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-      const uniforms = { resolution: [320, 180], time: frame.time, scene: frame.scene, local: frame.local, energy: frame.energy, beat: frame.beat, motion: 1, pointer: [0, 0], seed: frame.seed, poster: 0, shot: frame.shot, density: frame.density, event: frame.event, audio: frame.audio };
+      const uniforms = { resolution: [320, 180], time: frame.time, scene: frame.scene, local: frame.local, energy: frame.energy, beat: frame.beat, motion: 1, pointer: [0, 0], seed: frame.seed, poster: 0, shot: frame.shot, density: frame.density, event: frame.event, audio: frame.audio, flowBoundValid:frame.flowBoundValid };
       for (const [name, value] of Object.entries(uniforms)) {
         const location = gl.getUniformLocation(program, `u_${name}`); if (location === null) continue;
         if (Array.isArray(value)) { if (value.length === 2) gl.uniform2fv(location, value); else gl.uniform4fv(location, value); }
@@ -81,7 +83,7 @@ if (argv.includes('--child')) {
       return { renderer: gl.getParameter(rendererInfo?.UNMASKED_RENDERER_WEBGL ?? gl.RENDERER), glError: gl.getError(), translated };
     }, { vertexShader, fragmentShader, frame });
     if (result.glError) throw Error(`GL error ${result.glError}`);
-    await writeFile(output, JSON.stringify({ time, scene, sourceSha256: hash(fragmentShader), ...result }));
+    await writeFile(output, JSON.stringify({ time, scene, flowBoundValid:frame.flowBoundValid, sourceSha256: hash(fragmentShader), ...result }));
   } finally { await browser.close(); }
   process.exit(0);
 }

@@ -56,6 +56,18 @@ depth exactly. Nine 4K frames retained identical depth and color differences
 at most 2/255, RMS below .0015. Three million float32 upper-bound samples and
 200,000 group/material-order replays found no bound or selection violations.
 
+Padded approximate flow centers now reject whole groups before evaluating their
+original centers. Approximate values never supply surviving distance or material
+results. This reduced four 4K samples by another 3.5–4.7%. The flow arithmetic
+domain is certified once per frame by `flow-bounds.js`; unusual inputs retain
+the original cutoff. Moving this certificate out of each field query reduced
+two 120-frame runs by a further 3.5–3.6%, to 16.49 and 16.82 ms.
+
+A fresh comparison of the current source against `9d414e0`, using two blocks
+of 120 advancing frames at 4K, measured shell 26.99→20.24 ms, flow
+30.58→16.63 ms, and cathedral 32.00→25.55 ms. These are batch averages,
+not per-frame tail latency. Heavy scenes still exceed the 4K60 budget.
+
 Initial integrated changes passed 184 consecutive-frame comparisons across
 23 timestamp windows at 960×540 with unchanged encoded depth. Most color
 frames matched exactly; flow had differences up to 2/255, RMS below .034.
@@ -74,6 +86,8 @@ npm run profile:render -- --baseline-ref 9d414e0 --mode bench --width 3840 --hei
 ```
 
 The profiler serves frozen source snapshots and injects its QA hooks in memory.
+Snapshots include choreography and optional bound/cache helpers. Reports record
+the selected world and shot, and explicit Mesa driver diagnostic options.
 It records source hashes, rejects software rendering, and uses disjoint GPU
 timer queries plus completion fences. Timings alternate reference/candidate
 order across four blocks of 24 advancing frames. Comparisons reset temporal
@@ -100,6 +114,18 @@ npm run profile:render -- --baseline-ref b4bac57 --mode compare --width 540 --he
 ```
 
 ## Rejected or unmerged experiments
+
+Static RadeonSI compiler diagnostics are available with:
+
+```sh
+node scripts/profile-shader-cost.mjs --revisions HEAD --time 35 --scene 1 --no-inline --out artifacts/shader-cost
+```
+
+The tool uploads the same flow-bound certificate as the renderer and writes
+translated GLSL, ISA logs and register/opcode statistics. The current generic
+main shader uses 96 VGPRs and 108 SGPRs, with no spills or scratch memory and
+a compiled limit of five waves. Static instruction counts cover all scene
+paths; they do not measure executed instructions or dynamic occupancy.
 
 Larger flow steps and fewer cloud samples changed visible highlights or cloud
 structure. Factoring strand trigonometry and evaluating the previous nearest
