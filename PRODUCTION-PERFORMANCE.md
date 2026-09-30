@@ -31,3 +31,22 @@ These are 56 sampled frames, not continuous playback or whole-film tail
 coverage. Whole-film 4K60 remains unverified, and the two measured exceptions
 still require work. Report:
 artifacts/optimization/production-flow-guide-4k-sweep/bench-3840.json.
+
+Post-canyon production peaks
+----------------------------
+
+Reference f215784 (renderer e011ead), same hardware/pacing, two blocks of
+two timed frames per window:
+
+| Time | Mean GPU ms | Maximum GPU ms |
+| --- | ---: | ---: |
+| 20 | 14.76303 | 15.00996 |
+| 52 | 15.95129 | 16.40292 |
+| 150.1 | 17.09688 | 17.67408 |
+| 151 | 16.10795 | 16.27740 |
+| 160 | 15.41133 | 15.80660 |
+
+Both sampled canyon passages meet the frame budget. The early breach still
+exceeds it. The next investigation measures whole-cell roof rejection before
+hash evaluation during positive opening; surviving plate expressions must
+remain unchanged. Report: artifacts/optimization/production-canyon-4k-peaks.
