@@ -403,3 +403,17 @@ one-page audits, avoiding duplicate reference rendering. Reports label the
 side as candidate, retain its source hashes and omit paired reductions.
 CPU scheduling/aggregation checks cover both modes and reject invalid
 one-sided comparisons or missing measurements.
+
+The opened cathedral now uses a quarter-resolution miss/glow guide with
+full-resolution surface marching and a conservative window/spoke support guard.
+An optional second world program preserves the original shader source for
+closed/transition frames, portrait, lower resolutions and capability failures.
+Default-driver integrated 4K paired timings measured 160 s at 18.476 -> 15.584
+ms (15.65%) and 169.9 s at 18.524 -> 14.949 ms (19.30%). Sampled frame maxima
+were <=15.819 ms. Five integrated 4K comparisons retained identical depth and
+maximum color difference <=2; all 23 low-resolution chapter samples were exact.
+The initial guide genuinely lost two window spokes; its periodic support guard
+repaired that reproduced failure before integration. Portrait exceeded the
+strict color gate at one channel and retains the original pipeline. See
+`PRIMARY-GUIDE.md` for eligibility, controls, source fidelity and evidence limits.
+Whole-film 4K60 and continuous tails remain unverified.

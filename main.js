@@ -1,3 +1,5 @@
+import { PrimaryGuide } from './primary-guide.js';
+import { createPrimaryWorld } from './primary-shaders.js';
 import { CloudVolume } from './cloud-volume.js';
 import { NoiseCache } from './noise-cache.js';
 import { flowBoundValidity } from './flow-bounds.js';
@@ -17,7 +19,7 @@ const previewMode = params.has('preview');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const qualities = [{ name: 'HQ', scale: 1, max: 1920 }, { name: 'ULTRA', scale: 1.4, max: 2560 }, { name: 'ECO', scale: .65, max: 1100 }];
 const state = { ready: false, started: false, playing: false, quality: 0, pointer: [0, 0], smoothPointer: [0, 0], motion: reducedMotion.matches ? .2 : 1, width: innerWidth, height: innerHeight, scene: -1, lastTime: 0, lastActive: performance.now(), energy: [0, 0, 0, 0], record: null, recordStart: 0, previewTime: 0 };
-let analysis, score, chapters = [], audioContext, analyser, audioSource, audioDestination, frequencyData, recorder, gl, program, locations, fullVAO, secondaryLayers, compositor, noiseCache, cloudVolume, lastFrame = 0, fps = 60, toastTimer;
+let analysis, score, chapters = [], audioContext, analyser, audioSource, audioDestination, frequencyData, recorder, gl, program, locations, fullVAO, secondaryLayers, compositor, noiseCache, cloudVolume, primaryGuide, primaryWorld, lastFrame = 0, fps = 60, toastTimer;
 const resources = [];
 let exportResolution = null;
 
@@ -41,8 +43,10 @@ function createRenderer() {
   fullVAO=gl.createVertexArray();gl.bindVertexArray(fullVAO);
   const buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   const position = gl.getAttribLocation(program, 'a_position'); gl.enableVertexAttribArray(position); gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-  locations = Object.fromEntries(['resolution', 'time', 'scene', 'local', 'energy', 'beat', 'motion', 'pointer', 'seed', 'poster','shot','density','event','audio','flowBoundValid','noiseCache','noiseCacheValid','cloudVolume','cloudVolumeValid'].map((name) => [name, gl.getUniformLocation(program, `u_${name}`)]));
-  secondaryLayers=new SecondaryLayers(gl);compositor=new Compositor(gl);noiseCache=new NoiseCache(gl);cloudVolume=new CloudVolume(gl);
+  const uniformNames=['resolution', 'time', 'scene', 'local', 'energy', 'beat', 'motion', 'pointer', 'seed', 'poster','shot','density','event','audio','flowBoundValid','noiseCache','noiseCacheValid','cloudVolume','cloudVolumeValid','primaryGuide','primaryGuideValid'];
+  locations = Object.fromEntries(uniformNames.map((name) => [name, gl.getUniformLocation(program, `u_${name}`)]));
+  primaryWorld=createPrimaryWorld(gl,vertexShader,position,uniformNames);
+  secondaryLayers=new SecondaryLayers(gl);compositor=new Compositor(gl);noiseCache=new NoiseCache(gl);cloudVolume=new CloudVolume(gl);primaryGuide=new PrimaryGuide(gl);if(!primaryWorld)primaryGuide.release();
   resize();
 }
 
@@ -137,9 +141,13 @@ function render(now = performance.now(), forcedTime = null) {
     frame.energy=music.energy;
     const scene=frame.scene;
     cloudVolume.render(frame,world.width,world.height,fullVAO,noiseCache);
+    primaryGuide.render(frame,world.width,world.height,fullVAO,noiseCache);
     compositor.begin();
-    gl.useProgram(program);gl.bindVertexArray(fullVAO);noiseCache.bind(locations,frame);cloudVolume.bind(locations,frame);
-    gl.uniform2f(locations.resolution,world.width,world.height); gl.uniform1f(locations.time,t); gl.uniform1f(locations.scene,scene); gl.uniform1f(locations.local,frame.local); gl.uniform4fv(locations.energy,music.energy); gl.uniform1f(locations.beat,frame.beat); gl.uniform1f(locations.motion,state.motion); gl.uniform2fv(locations.pointer,state.smoothPointer); gl.uniform1f(locations.seed,frame.seed); gl.uniform1f(locations.poster,frame.poster);gl.uniform1f(locations.shot,frame.shot);gl.uniform1f(locations.density,frame.density);gl.uniform1f(locations.flowBoundValid,flowBoundValidity({time:t,scene,motion:state.motion,beat:frame.beat,pointer:state.smoothPointer}));gl.uniform4fv(locations.event,frame.event);gl.uniform4fv(locations.audio,frame.audio); gl.drawArrays(gl.TRIANGLES,0,3);
+    const guided=Boolean(primaryWorld&&primaryGuide.valid);
+    const activeProgram=guided?primaryWorld.program:program,u=guided?primaryWorld.locations:locations;
+    gl.useProgram(activeProgram);gl.bindVertexArray(fullVAO);noiseCache.bind(u,frame);cloudVolume.bind(u,frame);
+    if(guided)primaryGuide.bind(u,frame);
+    gl.uniform2f(u.resolution,world.width,world.height); gl.uniform1f(u.time,t); gl.uniform1f(u.scene,scene); gl.uniform1f(u.local,frame.local); gl.uniform4fv(u.energy,music.energy); gl.uniform1f(u.beat,frame.beat); gl.uniform1f(u.motion,state.motion); gl.uniform2fv(u.pointer,state.smoothPointer); gl.uniform1f(u.seed,frame.seed); gl.uniform1f(u.poster,frame.poster);gl.uniform1f(u.shot,frame.shot);gl.uniform1f(u.density,frame.density);gl.uniform1f(u.flowBoundValid,flowBoundValidity({time:t,scene,motion:state.motion,beat:frame.beat,pointer:state.smoothPointer}));gl.uniform4fv(u.event,frame.event);gl.uniform4fv(u.audio,frame.audio); gl.drawArrays(gl.TRIANGLES,0,3);
     frame.depthTexture=compositor.captureDepth();frame.depthScale=40;
     secondaryLayers.renderForCompositor(frame);compositor.finish(frame);
     state.world=scene;state.shot=frame.shot;state.event=frame.event;state.catRole=frame.catRole;state.catCount=frame.catCount;
