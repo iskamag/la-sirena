@@ -536,6 +536,10 @@ vec2 mapJewel(vec3 p) {
         vec3 signV=vec3(mod(fi,2.0)*2.0-1.0,mod(floor(fi*.5),2.0)*2.0-1.0,mod(floor(fi*.25),2.0)*2.0-1.0);
         vec3 center=signV*(size*.25+burst*.62);
         vec3 q=p-center;
+        // For f=max(-v.x,-v.y,-v.z,sum(v)/sqrt(3)), |v|<=4*f.
+        // Translation by size/4 lowers any face plane by at most size/4.
+        // This scales the bound for the max-plane field at tetra corners.
+        if(length(q)*.25-size*.25-.012-.0001>=best) continue;
         q.xz=rot(burst*.48*sin(fi*2.1+t*.22))*q.xz;
         q.xy=rot(burst*.43*cos(fi*1.7+t*.19))*q.xy;
         q*=signV;
@@ -548,6 +552,8 @@ vec2 mapJewel(vec3 p) {
         float fi=float(i), a=fi*TAU/5.0+t*.36;
         vec3 center=vec3(cos(a)*2.2,sin(a*.7+fi)*1.50,sin(a)*1.60);
         vec3 q=p-center;
+        // The octahedron field uses L1 norm; L2 is a rotation-invariant bound.
+        if((length(q)-(.20+.07*breathe))*.57735027-.008-.0001>=best) continue;
         q.xz=rot(t*.7+fi)*q.xz;q.yz=rot(t*.4+fi)*q.yz;
         float shard=octahedron(q,.20+.07*breathe)-.008;
         if(shard<best) {best=shard;material=fi+8.0;}
