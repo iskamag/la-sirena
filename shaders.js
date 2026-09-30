@@ -162,6 +162,10 @@ vec2 shellWorld(vec3 p,bool swarm) {
         // gives <1.561. Round outward to keep the bound conservative.
         // Also cover the independently animated central pearl.
         float boundRadius=max(1.562,.375+.025*pulse()*u_motion*(1.0-u_poster));
+        // The two tidal waves sum to at least -.16. This upper bound on the
+        // eventual floor value can reject shells without evaluating either
+        // wave early or changing the final material selection order.
+        float floorUpper=density()>.01?(p.y+2.02)*.67+.0001:100.0;
         for(int i=0;i<4;i++) {
             float fi=float(i);
             vec3 center=vec3(0);float size=1.0;
@@ -173,7 +177,7 @@ vec2 shellWorld(vec3 p,bool swarm) {
             vec3 q=(p-center)/size;
             // Skip only fields that cannot win the current minimum; retain
             // the original evaluation order and material tie behavior.
-            if((length(q)-boundRadius)*size-.0001>=d) continue;
+            if((length(q)-boundRadius)*size-.0001>=min(d,floorUpper)) continue;
             float candidate=nautilus(q,u_seed+fi*2.14+t*.13)*size;
             if(candidate<d) {d=candidate;mat=fi;}
         }
