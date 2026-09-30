@@ -156,6 +156,10 @@ vec2 shellWorld(vec3 p,bool swarm) {
     float t=motionTime(), d=100.0, mat=0.0;
     if(!swarm) {d=nautilus(p,u_seed+u_shot*.37);}
     else {
+        // Rotations preserve radius. The shell field is >= |q| minus
+        // major (1.06), axial offset (.20), tube (.465), corrugation (.017).
+        // Also cover the independently animated central pearl.
+        float boundRadius=max(1.742,.375+.025*pulse()*u_motion*(1.0-u_poster));
         for(int i=0;i<4;i++) {
             float fi=float(i);
             vec3 center=vec3(0);float size=1.0;
@@ -165,6 +169,9 @@ vec2 shellWorld(vec3 p,bool swarm) {
             if(i==3) {center=vec3(.20,1.18,-1.65);size=.49;}
             center.xy+=.13*vec2(sin(t*.43+fi),cos(t*.31+fi*1.7));
             vec3 q=(p-center)/size;
+            // Skip only fields that cannot win the current minimum; retain
+            // the original evaluation order and material tie behavior.
+            if((length(q)-boundRadius)*size-.0001>=d) continue;
             float candidate=nautilus(q,u_seed+fi*2.14+t*.13)*size;
             if(candidate<d) {d=candidate;mat=fi;}
         }
@@ -212,6 +219,10 @@ vec2 mapFlow(vec3 p) {
         vec2 center=vec2(cos(angle)*radius*1.33,sin(angle)*radius);
         center+=.19*vec2(sin(z*.52+phase*1.7),cos(z*.47+phase));
         vec2 body=p.xy-center;
+        // Radial lower bounds for the strands, cells, links and filament.
+        // Keep a rounding margin; all surviving field arithmetic is unchanged.
+        float boundRadius=max(.233,max(.143+.006*beat,.106+.016*beat));
+        if((length(body)-boundRadius)*.48-.0001>=best) continue;
         for(int j=0;j<3;j++) {
             float fj=float(j),helix=z*2.35+fj*TAU/3.0+phase-t*.30;
             vec2 q=body-.105*vec2(cos(helix),sin(helix));
