@@ -433,6 +433,9 @@ float templeRoofClustered(vec3 p,float cutoff) {
     // A conservative bound avoids expensive fragment evaluation below the vault.
     float bound=max(2.95-p.y,abs(p.x)-5.20);
     if(bound>.70) return bound;
+    // This helper is called only at zero opening. All rounded plates lie
+    // above y=3.252; preserve the earlier approximate return before this test.
+    if((3.2519-p.y)*.72-.0001>=cutoff) return cutoff;
     float row=floor((p.z+1.575)/3.15),slab=100.0;
     // Both moving plates in a cell fit inside this loose axis-aligned box.
     // Use its L-infinity field to reject the cell before evaluating its hashes.
@@ -477,6 +480,9 @@ float templeRoof(vec3 p,float cutoff) {
     // A conservative bound avoids expensive fragment evaluation below the vault.
     float bound=max(2.95-p.y,abs(p.x)-5.20);
     if(bound>.70) return bound;
+    // Coupling each plate's center height and rotated vertical support by h
+    // gives minimum y >= 3.252-.0548*opening, including the rounded edge.
+    if((3.2519-.055*opening-p.y)*.72-.0001>=cutoff) return cutoff;
     float row=floor((p.z+1.575)/3.15),slab=100.0;
     // The plates move across cell boundaries, so sample the actual nearby pieces.
     for(int x=-1;x<=1;x++) for(int z=-1;z<=1;z++) {
