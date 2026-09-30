@@ -376,3 +376,17 @@ Build, float capability/lifecycle/eligibility checks, cache-domain checks,
 352-frame render-state check and native fallback recording passed. The opened
 4K window still exceeds 16.67 ms, so whole-film 4K60 remains unproven. See
 `CLOUD-VOLUME.md` and `artifacts/optimization/cloud-volume-integrated-*`.
+
+For an absolute GPU audit of the current candidate without rendering a reference,
+use benchmark-only mode:
+
+```sh
+npm run profile:render -- --candidate-only --mode bench --width 3840 --height 2160 --times '[144,160,169.9]' --blocks 2 --batch 4 --budget-ms 16.667 --check
+```
+
+This opens one candidate page and reports side 0 as `candidate`, with source
+hashes, absolute median/frame timings and the candidate budget gate. It omits
+baseline metadata and reduction percentages. Default runs retain alternating
+paired measurements. `--candidate-only` rejects comparison mode and baseline
+roof-angle disabling. CPU scheduling and aggregation coverage is included in
+`node scripts/check-profile-scheduling.mjs`.

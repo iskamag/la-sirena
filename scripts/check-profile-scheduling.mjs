@@ -1,6 +1,7 @@
 // Exercise the profiler's actual injected scheduler without launching a GPU.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { validateBenchmarkMode, benchmarkLabels, benchmarkSideOrder, summarizeBenchmark } from './profile-bench.mjs';
 
 const source = await readFile(new URL('./profile-render.mjs', import.meta.url), 'utf8');
 const injection = source.match(/const injection = `([\s\S]*?)`;/)?.[1];
@@ -75,3 +76,25 @@ failed.gl.clientWaitSync = () => failed.gl.WAIT_FAILED;
 await assert.rejects(failed.profile.drain(), /GPU completion fence failed/);
 assert.equal(failed.stats().deletedFences, 1, 'Failed waits release the fence');
 console.log(JSON.stringify({ timedChunkFrames: [2, 2, 1], untimedMaximumQueued: 1, querySum: 'passed', disjointPropagation: 'passed', fenceCleanup: 'passed', gpuUsed: false }));
+
+// Single-side scheduling submits each block exactly once; sample summaries
+// belong to the candidate at side 0 and keep genuine absolute measurements.
+validateBenchmarkMode({mode:'bench',candidateOnly:true,disableBaselineRoofAngles:false});
+assert.throws(()=>validateBenchmarkMode({mode:'compare',candidateOnly:true}),/requires --mode bench/);
+assert.throws(()=>validateBenchmarkMode({mode:'bench',candidateOnly:true,disableBaselineRoofAngles:true}),/cannot disable a baseline/);
+assert.throws(()=>validateBenchmarkMode({mode:'invalid',candidateOnly:false}),/Mode must be/);
+const labels=benchmarkLabels(true);assert.deepEqual(labels,['candidate']);
+assert.deepEqual(Array.from({length:4},(_,block)=>benchmarkSideOrder(block,labels.length)),[[0],[0],[0],[0]]);
+assert.deepEqual(benchmarkLabels(false),['baseline','candidate']);
+assert.deepEqual([benchmarkSideOrder(0,2),benchmarkSideOrder(1,2)],[[0,1],[1,0]]);
+const samples=[
+ {side:0,gpuMs:12,wallMs:102,submitMs:.4,chunks:[{gpuMs:10},{gpuMs:14}]},
+ {side:0,gpuMs:10,wallMs:100,submitMs:.2,chunks:[{gpuMs:9},{gpuMs:11}]},
+];
+const summaries=summarizeBenchmark(samples,labels,1);
+assert.deepEqual(summaries,[{side:0,label:'candidate',gpuMs:11,wallMs:101,submitMs:(.4+.2)/2,gpuFrameP95Ms:14,gpuFrameMaximumMs:14}]);
+assert.equal(summaries.at(-1).gpuMs,11,'Single-side budget targets the candidate');
+assert(!Object.hasOwn(summaries[0],'gpuReductionPercent'),'Single-side summaries report absolute measurements');
+const paired=summarizeBenchmark([...samples,{side:1,gpuMs:8,wallMs:98,submitMs:.1,chunks:[{gpuMs:8}]}],benchmarkLabels(false),1);
+assert.equal(paired.at(-1).label,'candidate');assert.equal(paired.at(-1).gpuMs,8);assert.equal(paired[0].gpuMs,11);
+console.log('Candidate-only mode rejection, one-side/alternating schedules and sample/frame aggregation passed.');

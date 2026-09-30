@@ -1,6 +1,7 @@
 // Hardware-backed, deterministic render comparisons and GPU-completed timings.
 // Source serving and QA injection are confined to this process.
 import { chromium } from 'playwright';
+import { validateBenchmarkMode, benchmarkLabels, benchmarkSideOrder, summarizeBenchmark } from './profile-bench.mjs';
 import { createServer } from 'node:http';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
@@ -30,12 +31,13 @@ const motion = Number(option('motion', '1'));
 const pointer = JSON.parse(option('pointer', '[0,0]'));
 const poster = args.includes('--poster');
 const disableBaselineRoofAngles = args.includes('--disable-baseline-roof-angles');
+const candidateOnly = args.includes('--candidate-only');
 if (!Number.isFinite(motion) || motion < 0 || motion > 1 || !Array.isArray(pointer) || pointer.length !== 2 || pointer.some(n => !Number.isFinite(n) || Math.abs(n) > 1)) throw Error('Motion must be in [0,1] and pointer must contain two values in [-1,1]');
 const maxDifference = Number(option('max-difference', '2'));
 const maxRMS = Number(option('max-rms', '.05'));
 const budget = Number(option('budget-ms', 'Infinity'));
 const times = JSON.parse(option('times', '[1.5,11,14,20,24,35,58,91,110,129.3,144,150.1,156.6,160,169.9,180,195,215,235,249,270,281,286]'));
-if(!['compare','bench'].includes(mode)) throw Error('Mode must be compare or bench');
+validateBenchmarkMode({mode,candidateOnly,disableBaselineRoofAngles});
 if(!Array.isArray(times)||times.length===0||times.some(t=>!Number.isFinite(t)||t<0)) throw Error('Times must be a nonempty array of finite nonnegative numbers');
 if (![width, height, blocks, batch, sequence].every(n => Number.isInteger(n) && n > 0)) throw Error('Positive integer dimensions/counts required');
 if(!Number.isInteger(maxQueuedFrames)||maxQueuedFrames<1||!Number.isFinite(cooldownMs)||cooldownMs<0) throw Error('Use positive integer max-queued-frames and nonnegative cooldown-ms');
@@ -165,10 +167,10 @@ async function saveCapture(page, capture, path) {
   }, {encoded:capture.image,width,height});
   await writeFile(path,Buffer.from(png,'base64'));
 }
-const median = values => { const a = [...values].sort((x, y) => x - y);return (a[Math.floor((a.length - 1) / 2)] + a[Math.floor(a.length / 2)]) / 2; };
-const servers = [await serve(baselineRoot, baselineRef), await serve(root, null)];
+const labels=benchmarkLabels(candidateOnly);
+const servers=candidateOnly?[await serve(root,null)]:[await serve(baselineRoot,baselineRef),await serve(root,null)];
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--use-gl=angle', '--use-angle=gl', '--ignore-gpu-blocklist', '--disable-background-timer-throttling'] });
-const report = { mode, width, height, motion, pointer, poster, driverOptions: {radeonsiInlineUniforms:process.env.radeonsi_inline_uniforms??null,amdDebug:process.env.AMD_DEBUG??null,mesaShaderCacheDisable:process.env.MESA_SHADER_CACHE_DISABLE??null}, baseline: { root: baselineRoot, ref: baselineRef, sources: servers[0].sources }, candidate: {root,sources:servers[1].sources}, checks: {enabled:check,maxDifference,maxRMS,budget:Number.isFinite(budget)?budget:null}, results: [] };
+const report = { mode, width, height, motion, pointer, poster, driverOptions: {radeonsiInlineUniforms:process.env.radeonsi_inline_uniforms??null,amdDebug:process.env.AMD_DEBUG??null,mesaShaderCacheDisable:process.env.MESA_SHADER_CACHE_DISABLE??null}, candidateOnly, sides:labels.map((label,side)=>({side,label})), ...(candidateOnly?{}:{baseline: { root: baselineRoot, ref: baselineRef, sources: servers[0].sources }}), candidate: {root,sources:servers.at(-1).sources}, checks: {enabled:check,maxDifference,maxRMS,budget:Number.isFinite(budget)?budget:null}, results: [] };
 try {
   const pages = [];
   report.scheduling = {maxQueuedFrames,cooldownMs,wallIncludesCooldown:true};
@@ -191,7 +193,7 @@ try {
       await __profile.frame(t);
       if (__film.prepareScene && !await __film.prepareScene(__film.state.world)) throw Error('Scene specialization failed');
     },time);
-    Object.assign(result,await pages[1].evaluate(()=>({world:__film.state.world,shot:__film.state.shot,features:__profile.features()})));
+    Object.assign(result,await pages.at(-1).evaluate(()=>({world:__film.state.world,shot:__film.state.shot,features:__profile.features()})));
     if (mode === 'compare') {
       for (const page of pages) await page.evaluate(() => __profile.reset());
       result.frames = [];
@@ -209,19 +211,14 @@ try {
     } else if (mode === 'bench') {
       result.samples = [];
       for (let block = 0; block < blocks; block++) {
-        for (const side of block % 2 ? [1,0] : [0,1]) {
+        for (const side of benchmarkSideOrder(block,pages.length)) {
           const page = pages[side];
           await page.evaluate(async t=>{__profile.reset();for(let i=0;i<4;i++)await __profile.frame(t+i/60);},time-4/60);
-          result.samples.push({ side, block, ...await page.evaluate(([t,n,q,c])=>__profile.timing(t,n,q,c),[time,batch,maxQueuedFrames,cooldownMs]) });
+          result.samples.push({ side, label:labels[side], block, ...await page.evaluate(([t,n,q,c])=>__profile.timing(t,n,q,c),[time,batch,maxQueuedFrames,cooldownMs]) });
         }
       }
-      result.summary = [0,1].map(side=>({side,...Object.fromEntries(['gpuMs','wallMs','submitMs'].map(key=>[key,median(result.samples.filter(s=>s.side===side).map(s=>s[key]))]))}));
-      if(maxQueuedFrames===1) for(const summary of result.summary){
-        const frames=result.samples.filter(s=>s.side===summary.side).flatMap(s=>s.chunks.map(c=>c.gpuMs)).sort((a,b)=>a-b);
-        summary.gpuFrameP95Ms=frames[Math.ceil(frames.length*.95)-1];
-        summary.gpuFrameMaximumMs=frames.at(-1);
-      }
-      result.gpuReductionPercent = 100 * (1 - result.summary[1].gpuMs / result.summary[0].gpuMs);
+      result.summary=summarizeBenchmark(result.samples,labels,maxQueuedFrames);
+      if(result.summary.length===2) result.gpuReductionPercent=100*(1-result.summary[1].gpuMs/result.summary[0].gpuMs);
       console.log(JSON.stringify({time, summary:result.summary, gpuReductionPercent:result.gpuReductionPercent}));
     } else throw Error('Mode must be compare or bench');
     report.results.push(result);
@@ -230,7 +227,7 @@ try {
   if (check) {
     const failures = report.results.filter(result => mode === 'compare'
       ? result.frames.some(f => f.glErrors.some(Boolean) || f.base.channels[3] !== 0 || f.image.maximum > maxDifference || f.image.rms > maxRMS)
-      : result.samples.some(s => s.disjoint || s.glError) || result.summary[1].gpuMs > budget);
+      : result.samples.some(s => s.disjoint || s.glError) || result.summary.at(-1).gpuMs > budget);
     if (failures.length) throw Error(`Render checks failed at ${failures.map(x=>x.time).join(', ')}; see ${out}`);
   }
 } finally { await browser.close();for (const {server} of servers) server.close(); }
