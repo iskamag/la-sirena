@@ -7,8 +7,9 @@ baseline. primary-shaders.js derives a separate guide-aware world and guide
 prepass through unique source anchors. Their exported strings are byte identical
 to the tested window-guard 8bd869a prototype. Source drift fails explicitly at module load.
 
-Only landscape/square scene 3 at output height >=1440, time >=156.515 and fully open rupture
-(event.z >=1) can use the optional world program. Controls must satisfy the
+Only landscape/square scene 3 at output height >=1440, time >=151 and positive rupture
+opening (event.z >0) can use the optional world program. Partial opening was validated
+separately in PARTIAL-GUIDE.md; the shader strings and guide thresholds are unchanged. Controls must satisfy the
 cloud coordinate certificate (time <=170.125, normalized motion/beat and
 pointer range, finite camera controls and event age), plus normal density,
 finite transport and poster disabled. Unsupported resources, shader/link errors,

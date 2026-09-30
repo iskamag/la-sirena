@@ -62,5 +62,29 @@ Replay scripts/reports remain in /tmp for parent review:
 hashes and eligibility/lifecycle tests, including newly eligible partial frames.
 `npm run build` passes. Because this change alters no shader source, the same
 compiled shaders and all full-resolution fallback expressions are preserved.
-The candidate remains unmerged pending paired GPU timing and partial-opening
-image/depth/motion checks. No global resolution, geometry or particle changes.
+The candidate was accepted as 68f30ba after the GPU checks below. No global
+resolution, geometry or particle changes.
+
+Production GPU validation
+-------------------------
+
+Paired RX 6800 / ANGLE OpenGL 3840x2160 measurements against be685b3,
+two alternating blocks of two timed frames per side, one queued frame and
+1000 ms pauses outside the timing queries:
+
+| Time | Baseline ms | Candidate ms | Reduction | Candidate frame maximum ms |
+| --- | ---: | ---: | ---: | ---: |
+| 151 | 17.50944 | 15.90200 | 9.18% | 16.15744 |
+| 154.5 | 17.72794 | 15.28192 | 13.80% | 15.81956 |
+
+This extends the existing structural optimization into another over-budget
+phase. It changes eligibility only and does not tune the reuse thresholds.
+
+Eight true-4K frames at 151/152/154.5/156.5 had identical encoded depth,
+maximum final color difference 2/255 and RMS <= .02713. Four additional true-4K
+frames at 151/154.5 with motion .2 and pointer [.8,-.7] also retained depth,
+maximum 2 and RMS <= .02525. The 151 candidate image was viewed directly.
+All four exported shader hashes remain unchanged. These are sampled checks;
+whole-film 4K60 and continuous temporal behavior remain unverified.
+
+Reports: artifacts/optimization/primary-partial-4k-{performance,quality,controls}.
