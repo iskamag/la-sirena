@@ -1,0 +1,30 @@
+{
+  "capturedAt": "2026-09-30T04:15:46.732Z",
+  "parts": [
+    {
+      "index": 0,
+      "sha256": "3af8cb6f20025903b1ce2a77869e9dbc17121ac14096d4f8590c95d71b474e1c",
+      "source": "float mapTransit(vec3 p) {\n    float t=motionTime(), mode=variant();\n    p.z+=t*6.7+.70*pulse()*u_motion;\n    p.xy/=1.0+.06*pulse()*u_motion;\n    p.xy=rot(.14*sin(p.z*.10)+.10*sin(t*.19))*p.xy;\n    vec3 q=p;\n    q.z=mod(p.z+2.2,4.4)-2.2;\n    float frame=max(box(q,vec3(2.55,1.8,.055)),-box(q,vec3(2.50,1.75,.6)))-.007;\n    if(mode==1.0) {\n        q.xy=rot(.785398)*q.xy;\n        frame=max(box(q,vec3(2.01,2.01,.055)),-box(q,vec3(1.96,1.96,.6)))-.007;\n    }\n    if(mode==2.0) {\n        vec2 h=abs(q.xy);\n        float hexagon=max(h.x*.866025+h.y*.5,h.y)-1.83;\n        frame=max(abs(hexagon)-.034,abs(q.z)-.050)-.008;\n    }\n    if(mode==3.0) {\n        float triangle=max(q.y,max(dot(q.xy,vec2(.866025,-.5)),dot(q.xy,vec2(-.866025,-.5))))-1.28;\n        frame=max(abs(triangle)-.038,abs(q.z)-.050)-.008;\n    }\n    vec3 r=p;r.xy=abs(r.xy)-vec2(2.51,1.76);\n    float rails=length(r.xy)-.016;\n    vec3 f=p;f.z=mod(p.z+.5,1.0)-.5;f.x=abs(f.x)-2.65;f.y=abs(f.y)-.95;\n    float fins=box(f,vec3(.018,.045,.22));\n    float detail=min(frame,min(rails,fins));\n    if(density()>.01) {\n        vec3 ornament=p;ornament.z=mod(p.z+2.7,5.4)-2.7;\n        ornament.x=abs(ornament.x)-1.88;ornament.y=abs(ornament.y)-1.13;\n        ornament.xz=rot(.4)*ornament.xz;\n        detail=min(detail,octahedron(ornament,.23)-.009);\n        vec3 panel=p;panel.z=mod(p.z+1.2,2.4)-1.2;panel.x=abs(panel.x)-2.84;\n        float outline=max(box(panel,vec3(.014,1.35,.73)),-box(panel,vec3(.09,1.31,.69)));\n        detail=min(detail,outline);\n        detail=min(detail,p.y+1.94);\n    }\n    return detail;\n}"
+    },
+    {
+      "index": 1,
+      "sha256": "12fc39867cb73e08e86c7b7163a023945cffdfe201386bcb2237e5fbb784d108",
+      "source": "if(scene==2) {\n        uv=rot((mode==1.0?.32:mode==3.0?-.20:.06)*sin(t*.27))*uv;\n        ro=vec3(.22*sin(t*.22),.17*cos(t*.17),0);\n        ta=ro+vec3(.08*sin(t*.19),.05,1);lens=1.10-.05*pulse()*u_motion;\n        if(mode==2.0) ro.xy+=vec2(.36,-.18);\n    }"
+    },
+    {
+      "index": 2,
+      "sha256": "cc0f1bad3434095a577a3a497d80575bbc6ad97d52cffab3745e3431cb311c4a",
+      "source": "if(scene==2) {\n            vec3 q=p;q.z+=t*6.7+.70*pulse()*u_motion;\n            float cycle=.5+.5*sin(floor(q.z/4.4)*1.7+u_seed);\n            base=mix(vec3(.03,.83,1.0),vec3(1.0,.055,.018),smoothstep(.73,.85,cycle));\n            c=base*(.45+1.25*rim+.30*diff)+reflected*.25+spec;\n            c*=.6+.7*pulse();\n            if(p.y< -1.93) c=waterSurface(p,reflected,2)+vec3(.003,.12,.19)*pow(.5+.5*cos(p.x*8.0),16.0)*.20;\n        }"
+    },
+    {
+      "index": 3,
+      "sha256": "8a685072ad6375e846b041d4eb7005ede18aa865b7e74ac09956d5a1f3707f70",
+      "source": "if(scene==2) {\n        float a=atan(uv.y,uv.x),r=length(uv);\n        float sector=floor(a*48.0/TAU),f=fract(a*48.0/TAU);\n        float line=exp(-abs(f-.5)*140.0);\n        float h=hash(vec2(sector,mode));\n        float dash=smoothstep(.25,.75,.5+.5*sin(r*13.0-t*7.0+h*TAU));\n        float speed=line*dash*smoothstep(.10,.55,r)*smoothstep(.35,.8,h);\n        c+=mix(vec3(.01,.58,1.0),vec3(.93,.02,.17),step(.70,h))*speed*(.35+.85*pulse());\n        c*=1.0+.30*pulse();\n    }"
+    },
+    {
+      "index": 4,
+      "sha256": "764bdb47a9a8fbce6f74f3e3df844b4c743aef295b633988f3594690cb8af125",
+      "source": "    if(scene==2) bg=vec3(.003,.005,.015)+vec3(.025,.035,.18)*exp(-length(uv)*5.0);"
+    }
+  ]
+}

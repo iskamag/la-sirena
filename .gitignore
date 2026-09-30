@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.silent.mp4
+artifacts/
+__pycache__/

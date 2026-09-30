@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#090b0d" />
+    <meta name="description" content="LA SIRENA. Shadowcats, coloured noise, and impossible worlds. A procedural music film built from a four-channel tracker module." />
+    <title>LA SIRENA — shadow transmission</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23090b0d'/%3E%3Cpath d='M9 43L24 17h8L17 43zm20 0l15-26h8L37 43z' fill='%23dbff70'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="world" aria-hidden="true"></canvas>
+      <canvas id="film" aria-hidden="true"></canvas>
+
+      <header class="masthead ui">
+        <a href="#" class="wordmark" aria-label="La Sirena, return to beginning"><span class="mark">∕∕</span> LA SIRENA<span class="wordmark-sub">A PROCEDURAL FILM</span></a>
+        <div class="edition"><span class="live-light"></span> SHADOW 001 <span class="edition-divider">/</span> REALTIME</div>
+      </header>
+
+      <section class="landing" aria-labelledby="title">
+        <div class="eyebrow"><span class="tiny-cross">✳</span> COLOUR INSIDE THE DARK</div>
+        <h1 id="title"><span>LA</span><span>SIRENA<span class="title-period">.</span></span></h1>
+        <div class="landing-footer">
+          <div class="intro-copy">Colour inside the dark.<br />Four channels. Shadowcats.<br /><span>One continuous transmission.</span></div>
+          <button id="enter" class="enter" disabled><span class="enter-icon">↗</span><span><b id="enter-label">TUNING THE SIGNAL</b><small id="enter-detail">Preparing audio &amp; visuals</small></span><span class="enter-arrow">→</span></button>
+        </div>
+        <div class="landing-index"><span>ORIGINAL TRACKER SOUND</span><span id="duration-label">04:49</span><span class="index-line"></span><span>EST. 1992 / REIMAGINED NOW</span></div>
+        <div class="vertical-caption">NO FOOTAGE. ALL MATHEMATICS.</div>
+      </section>
+
+      <div class="corner-note ui"><span class="bracket">[</span> <span id="current-act">01 — SHADOW TRANSMISSION</span> <span class="bracket">]</span></div>
+      <button id="sound-toggle" class="sound-toggle ui" aria-label="Mute audio" title="Mute (M)"><span class="sound-bars"><i></i><i></i><i></i><i></i><i></i></span><span id="sound-label">SOUND ON</span></button>
+
+      <section class="transport ui" aria-label="Playback controls">
+        <div class="chapter-track" id="chapter-track" aria-label="Film chapters"></div>
+        <div class="controls-row">
+          <button id="play" class="icon-button play-button" aria-label="Play" title="Play / pause (Space)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="currentColor" /></svg></button>
+          <div class="time"><span id="elapsed">00:00</span><span class="time-slash">/</span><span id="total">04:49</span></div>
+          <div class="timeline-wrap"><input type="range" id="seek" min="0" max="289" step="0.05" value="0" aria-label="Seek through the film" /><div class="timeline-tooltip" id="seek-tooltip"></div></div>
+          <div class="control-extras">
+            <button id="chapters-button" class="text-button" aria-label="Open chapters" aria-expanded="false" title="Chapters (C)">CHAPTERS <span>＋</span></button>
+            <button id="quality" class="quality-button" title="Change render quality" aria-label="Render quality: High">HQ</button>
+            <button id="record" class="icon-button" aria-label="Record video from current position" title="Record the film to WebM"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg></button>
+            <button id="fullscreen" class="icon-button" aria-label="Enter fullscreen" title="Fullscreen (F)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4m12-4h4v4M4 16v4h4m12-4v4h-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+          </div>
+        </div>
+      </section>
+
+      <aside id="chapters" class="chapter-panel" aria-label="Chapters" inert>
+        <div class="panel-heading"><span>SEVEN ACTS</span><button id="close-chapters" class="icon-button" aria-label="Close chapters">×</button></div>
+        <div id="chapter-list"></div>
+        <div class="panel-foot">Choose a world. Follow the signal.</div>
+      </aside>
+
+      <div id="toast" role="status" aria-live="polite"></div>
+      <div id="record-status" hidden><span></span> RECORDING <b id="record-time">00:00</b><button id="stop-record">STOP &amp; SAVE ↗</button></div>
+      <div id="error" hidden><h2>Signal interrupted</h2><p id="error-message"></p><button id="retry" class="enter">TRY AGAIN ↗</button></div>
+      <div class="mobile-suggestion ui">HEADPHONES RECOMMENDED</div>
+      <audio id="audio" preload="auto" crossorigin="anonymous"><source src="/music.ogg" type="audio/ogg" /><source src="/music.mp3" type="audio/mpeg" /></audio>
+    </main>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
