@@ -300,3 +300,22 @@ comparison reproduced that failure. A small paced 1280x720 opened-roof
 comparison measured 2.695 to 2.718 ms, so neither fidelity nor speed supports
 merging it. The profiler now exposes the cache's allowed/enabled/valid state
 and can disable the baseline roof-angle cache for this diagnostic.
+
+The correlated whole-roof vertical bound (`a436257`, candidate `aa889ef`)
+rejects all eighteen plates before row/hash/rotation work when the existing
+geometry cutoff already wins. Both original approximate global returns remain
+first. It passed 45 sampled frames with exact color and encoded depth: eight
+640x360 cathedral frames, eighteen 960x540 transition frames, three true-4K
+frames, eight portrait/control frames and eight motion-disabled frames across
+chapters. The opened cathedral image was also inspected directly.
+
+Small paired 4K tests measured 160 s at 21.651 to 20.811 ms (3.88% faster),
+while 144 s was effectively flat at 18.043 to 18.121 ms. Two blocks of two
+frames per side used one queued frame, 1000 ms pauses and uniform inlining
+disabled. At 1280x720, two blocks of four frames with 250 ms pauses measured
+.48%/3.49% gains at 144/160 s. These are sampled windows, not whole-film
+60 fps evidence; the opened window remains above the 16.67 ms budget.
+Reports are in `artifacts/optimization/roof-global-y-*`. The production build,
+352-frame render-state check and independent million-case CPU bound check
+passed after integration. See `ROOF-GLOBAL-Y-BOUND.md` for the enclosure proof
+and the limits of its floating-point model.
