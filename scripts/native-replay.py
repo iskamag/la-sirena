@@ -3,8 +3,8 @@
 
 No browser, sockets or sandbox override. Compilation, linking, framebuffer
 completeness and every GL call are checked against the actual GLES driver.
-The output covers the world/layers/post graph; HTML controls and 2D titles are
-outside this native renderer's verification scope.
+The output covers the world/layers/post graph and supplied film graphics via
+SVG/Cairo. Browser controls and live audio behavior remain outside its scope.
 """
 import argparse
 import ctypes as ct
@@ -160,7 +160,8 @@ class Replay:
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('trace'); parser.add_argument('--out',default='artifacts/native-qa')
-    parser.add_argument('--raw',help='Concatenate top-down RGB frames into this file (or - for stdout)')
+    parser.add_argument('--raw',help='Concatenate top-down raw frames into this file (or - for stdout)')
+    parser.add_argument('--raw-format',choices=['rgb24','bgra'],default='rgb24',help='Raw output pixel format; BGRA keeps the Cairo staging buffer')
     parser.add_argument('--pause-ms',type=float,default=0,help='Idle after every frame to keep the desktop responsive')
     options=parser.parse_args();
     if options.pause_ms<0: parser.error('pause-ms must be nonnegative')
@@ -181,18 +182,32 @@ def main():
                 item=json.loads(line); began=time.perf_counter(); replay.calls(item['commands']); gl_finish()
                 gl_read(0,0,width,height,0x1908,0x1401,pixels); error=gl_error()
                 if error: raise RuntimeError(f'GL readback 0x{error:04x}')
-                data=bytes(pixels)
+                data=bytes(pixels); bgra=None
                 if item.get('overlay'):
-                    data=bytes(overlay_module.overlay(data,width,height,item['overlay']))
-                    if len(data)!=width*height*4: raise RuntimeError('Overlay returned invalid RGBA size')
+                    fused=bool(raw and options.raw_format=='bgra')
+                    result=bytes(overlay_module.overlay(data,width,height,item['overlay'],'bgra' if fused else 'rgba'))
+                    if len(result)!=width*height*4: raise RuntimeError('Overlay returned invalid RGBA/BGRA size')
+                    if fused:bgra=result;data=None
+                    else:data=result
+                if raw and options.raw_format=='bgra' and bgra is None:
+                    bgra=overlay_module.swap_red_blue_flip_rows(data,width,height).tobytes()
                 path=out/item.get('name',f'frame-{number:05d}.png')
-                if item.get('capture',True): png(path,data,width,height)
+                if item.get('capture',True):
+                    if data is None:data=overlay_module.swap_red_blue_flip_rows(bgra,width,height).tobytes()
+                    png(path,data,width,height)
                 if raw:
-                    rows=[data[y*width*4:(y+1)*width*4] for y in range(height-1,-1,-1)]
-                    rgba=b''.join(rows); rgb=bytearray(width*height*3)
-                    rgb[0::3]=rgba[0::4];rgb[1::3]=rgba[1::4];rgb[2::3]=rgba[2::4];raw.write(rgb)
+                    if options.raw_format=='bgra':raw.write(bgra)
+                    else:
+                        rows=[data[y*width*4:(y+1)*width*4] for y in range(height-1,-1,-1)]
+                        rgba=b''.join(rows); rgb=bytearray(width*height*3)
+                        rgb[0::3]=rgba[0::4];rgb[1::3]=rgba[1::4];rgb[2::3]=rgba[2::4];raw.write(rgb)
                 stride=max(4,(width*height//5000)*4)
-                luminance=[data[n]*.2126+data[n+1]*.7152+data[n+2]*.0722 for n in range(0,len(data),stride)]
+                if data is None:
+                    # Preserve the original bottom-up sample positions and RGB
+                    # operation order without copying the whole frame back.
+                    offsets=((height-1-n//(width*4))*width*4+n%(width*4) for n in range(0,len(bgra),stride))
+                    luminance=[bgra[n+2]*.2126+bgra[n+1]*.7152+bgra[n]*.0722 for n in offsets]
+                else:luminance=[data[n]*.2126+data[n+1]*.7152+data[n+2]*.0722 for n in range(0,len(data),stride)]
                 detail={'index':number,'time':item.get('time'),'state':item.get('state'),'path':str(path) if item.get('capture',True) else None,'renderSeconds':time.perf_counter()-began,'averageLuminance':sum(luminance)/len(luminance),'litFraction':sum(value>8 for value in luminance)/len(luminance),'overlay':bool(item.get('overlay')),'glError':error}
                 report['frames'].append(detail)
                 if item.get('capture',True) or number%30==0: print(json.dumps(detail),file=sys.stderr,flush=True)
