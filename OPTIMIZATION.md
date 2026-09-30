@@ -32,6 +32,10 @@ the original sample positions, stopping conditions, material order and glow.
   post-processing, avoiding negligible exponential tails.
 - A cathedral spoke bound avoids angular calculations when the radial and
   axial constraints already prove that the spokes cannot win.
+- Shell swarm bounds also compare against a cheap upper bound on the eventual
+  tidal floor. The waves sum to at least -.16, so `(p.y+2.02)*.67+.0001`
+  bounds that floor from above without early sine evaluations. The floor and
+  surviving shells retain their original arithmetic and material order.
 - Browser exports explicitly allocate the requested dimensions. Previously a
   4K viewport could still render the world at the HQ 1920-pixel cap.
 
@@ -67,6 +71,19 @@ A fresh comparison of the current source against `9d414e0`, using two blocks
 of 120 advancing frames at 4K, measured shell 26.99→20.24 ms, flow
 30.58→16.63 ms, and cathedral 32.00→25.55 ms. These are batch averages,
 not per-frame tail latency. Heavy scenes still exceed the 4K60 budget.
+
+Shell floor lookahead subsequently reduced two heavy 4K windows by
+25.44–25.47%, from 19.69–20.11 to 14.68–14.98 ms, across four alternating
+blocks of 120 advancing frames. A lighter window improved 3.31→2.77 ms.
+The 184-frame integrated comparison across 23 windows retained identical
+encoded depth, with at most 1/255 color differences; most frames were exact.
+Nine 4K frames had unchanged depth and at most 1/255 color differences.
+Twenty portrait frames with reduced motion and an offset pointer were exact.
+Saved portrait pairs were visually inspected for corrugations, reflections,
+rims and arcs. One million float32 floor-bound samples over y in [-64,64]
+found no violations. Cathedral performance still exceeds the 4K60 budget.
+Native GLES compilation and three full render-graph frames (shell, flow and
+cathedral) completed with no GL errors; the production build also passed.
 
 Initial integrated changes passed 184 consecutive-frame comparisons across
 23 timestamp windows at 960×540 with unchanged encoded depth. Most color
@@ -139,6 +156,11 @@ rupture; separate shader compilation can change floating-point hash and rotation
 results even with RGBA32F storage. Per-scene specialization also failed the
 strict gate, with isolated depth changes in flow and arcade scenes, and remains
 unmerged.
+
+A simplified closed-roof helper preserved the opened roof's original source
+but still changed one encoded-depth pixel in each of two early windows.
+A static roof hash cache reduced two 4K timings by only 1.7–2.5% and retained
+its previously observed late-rupture image failure. Neither is merged.
 
 A tighter nautilus meridian bound passed image comparisons but regressed the
 heavy shell swarm by 8.2–8.3% at 4K. A CPU ray replay found it rejects only
