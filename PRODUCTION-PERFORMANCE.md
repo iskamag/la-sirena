@@ -50,3 +50,15 @@ Both sampled canyon passages meet the frame budget. The early breach still
 exceeds it. The next investigation measures whole-cell roof rejection before
 hash evaluation during positive opening; surviving plate expressions must
 remain unchanged. Report: artifacts/optimization/production-canyon-4k-peaks.
+
+Opened-roof cluster triage
+-------------------------
+
+The copied closed-roof cell bound was parked without a GPU prototype. At
+150.1 it rejects 65.48% of roof hashes/sphere prefixes but eliminates zero
+plate fields or rotations (81,380 original and candidate evaluations). It
+adds 155,952 cell bounds against 311,904 original hashes. The existing sphere
+guard already rejects those plates. This lacks a credible large frame gain.
+The next bounded CPU triage measures whether other cathedral fields can
+skip substantial dynamic flute/column/window work while retaining their
+original scalar values. Temporary evidence: /tmp/mus2-partial-roof-cluster-cpu.json.
