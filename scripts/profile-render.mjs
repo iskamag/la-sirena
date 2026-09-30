@@ -34,19 +34,36 @@ const maxDifference = Number(option('max-difference', '2'));
 const maxRMS = Number(option('max-rms', '.05'));
 const budget = Number(option('budget-ms', 'Infinity'));
 const times = JSON.parse(option('times', '[1.5,11,14,20,24,35,58,91,110,129.3,144,150.1,156.6,160,169.9,180,195,215,235,249,270,281,286]'));
+if(!['compare','bench'].includes(mode)) throw Error('Mode must be compare or bench');
+if(!Array.isArray(times)||times.length===0||times.some(t=>!Number.isFinite(t)||t<0)) throw Error('Times must be a nonempty array of finite nonnegative numbers');
 if (![width, height, blocks, batch, sequence].every(n => Number.isInteger(n) && n > 0)) throw Error('Positive integer dimensions/counts required');
 if(!Number.isInteger(maxQueuedFrames)||maxQueuedFrames<1||!Number.isFinite(cooldownMs)||cooldownMs<0) throw Error('Use positive integer max-queued-frames and nonnegative cooldown-ms');
 await mkdir(out, { recursive: true });
 const injection = `
 window.__profile = {
-  configure(width,height,motion,pointer,poster) {
+  configure(width,height,motion,pointer,poster,cooldownMs) {
+    this.cooldownMs=cooldownMs;
     state.started=!poster;state.offline=true;state.motion=motion;state.pointer=[...pointer];state.smoothPointer=[...pointer];
     getMusic=(t,dt)=>score.musicAt(t);
     world.width=width;world.height=height;
     secondaryLayers.resize(width,height);compositor.resize(width,height);
   },
   reset(){compositor.historyReady=false;compositor.lastTime=-100;compositor.lastScene=-1;},
-  frame(t){render(performance.now(),t);},
+  async drain(){
+    const fence=gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE,0);gl.flush();const began=performance.now();
+    try {
+      for(;;){
+        const status=gl.clientWaitSync(fence,0,0);
+        if(status===gl.ALREADY_SIGNALED||status===gl.CONDITION_SATISFIED)break;
+        if(status===gl.WAIT_FAILED||performance.now()-began>30000)throw Error('GPU completion fence failed');
+        await new Promise(r=>setTimeout(r,0));
+      }
+    } finally {gl.deleteSync(fence);}
+  },
+  async frame(t){
+    render(performance.now(),t);await this.drain();
+    if(this.cooldownMs>0)await new Promise(r=>setTimeout(r,this.cooldownMs));
+  },
   get gl(){return gl;},
   capture(){
     const previous=gl.getParameter(gl.FRAMEBUFFER_BINDING);
@@ -59,8 +76,8 @@ window.__profile = {
   },
   async timing(start,count,maxQueuedFrames,cooldownMs){
     const ext=gl.getExtension('EXT_disjoint_timer_query_webgl2');if(!ext)throw Error('Hardware GPU timer unavailable');
-    const drain=async()=>{const fence=gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE,0);gl.flush();let began=performance.now();for(;;){const status=gl.clientWaitSync(fence,0,0);if(status===gl.ALREADY_SIGNALED||status===gl.CONDITION_SATISFIED)break;if(status===gl.WAIT_FAILED||performance.now()-began>30000)throw Error('GPU completion fence failed');await new Promise(r=>setTimeout(r,0));}gl.deleteSync(fence);};
-    await drain();const began=performance.now();let gpu=0,submit=0,disjoint=false,deliberateWait=0;
+    const drain=()=>this.drain();
+    await drain();const began=performance.now(),chunks=[];let gpu=0,submit=0,disjoint=false,deliberateWait=0;
     for(let offset=0;offset<count;offset+=maxQueuedFrames){
       const q=gl.createQuery(),queued=Math.min(maxQueuedFrames,count-offset),submitted=performance.now();
       gl.beginQuery(ext.TIME_ELAPSED_EXT,q);
@@ -68,7 +85,8 @@ window.__profile = {
       gl.endQuery(ext.TIME_ELAPSED_EXT);submit+=performance.now()-submitted;
       await drain();
       while(!gl.getQueryParameter(q,gl.QUERY_RESULT_AVAILABLE))await new Promise(r=>setTimeout(r,0));
-      gpu+=gl.getQueryParameter(q,gl.QUERY_RESULT)/1e6;
+      const elapsed=gl.getQueryParameter(q,gl.QUERY_RESULT)/1e6;gpu+=elapsed;
+      chunks.push({time:start+offset/60,frames:queued,gpuMs:elapsed/queued});
       disjoint=disjoint||gl.getParameter(ext.GPU_DISJOINT_EXT);gl.deleteQuery(q);
       // Pause outside the GPU query so desktop breathing room is not counted
       // as shader work. Bound queue depth before submitting the next chunk.
@@ -77,7 +95,7 @@ window.__profile = {
         deliberateWait+=performance.now()-waiting;
       }
     }
-    return {gpuMs:gpu/count,wallMs:(performance.now()-began)/count,submitMs:submit/count,deliberateWaitMs:deliberateWait/count,disjoint,glError:gl.getError()};
+    return {gpuMs:gpu/count,wallMs:(performance.now()-began)/count,submitMs:submit/count,deliberateWaitMs:deliberateWait/count,chunks,disjoint,glError:gl.getError()};
   }
 };`;
 
@@ -145,7 +163,7 @@ try {
     await page.addInitScript(() => { window.requestAnimationFrame = () => 0; });
     await page.goto(`${url}/?preview`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => window.__film?.ready, null, { timeout: 60000 });
-    await page.evaluate(async args => {await document.fonts.ready;window.__profile.configure(...args);}, [width,height,motion,pointer,poster]);
+    await page.evaluate(async args => {await document.fonts.ready;window.__profile.configure(...args);}, [width,height,motion,pointer,poster,cooldownMs]);
     pages.push(page);
   }
   report.renderer = await pages[0].evaluate(() => { const g=__profile.gl,e=g.getExtension('WEBGL_debug_renderer_info');return e?g.getParameter(e.UNMASKED_RENDERER_WEBGL):g.getParameter(g.RENDERER); });
@@ -154,7 +172,7 @@ try {
   for (const time of times) {
     const result = { time };
     for (const page of pages) await page.evaluate(async t => {
-      __profile.frame(t);
+      await __profile.frame(t);
       if (__film.prepareScene && !await __film.prepareScene(__film.state.world)) throw Error('Scene specialization failed');
     },time);
     Object.assign(result,await pages[1].evaluate(()=>({world:__film.state.world,shot:__film.state.shot})));
@@ -164,7 +182,7 @@ try {
       for (let frame = -2; frame < sequence; frame++) {
         const t = time + frame / 60;
         const captures = [];
-        for (const page of pages) captures.push(await page.evaluate(({t,capture})=>{__profile.frame(t);return capture?__profile.capture():null;}, {t,capture:frame>=0}));
+        for (const page of pages) captures.push(await page.evaluate(async({t,capture})=>{await __profile.frame(t);return capture?__profile.capture():null;}, {t,capture:frame>=0}));
         if (frame < 0) continue;
         if(saveImages&&frame===0) for(const side of [0,1])
           await saveCapture(pages[side],captures[side],resolve(out,`${time}-${side===0?'baseline':'candidate'}.png`));
@@ -177,11 +195,16 @@ try {
       for (let block = 0; block < blocks; block++) {
         for (const side of block % 2 ? [1,0] : [0,1]) {
           const page = pages[side];
-          await page.evaluate(t=>{__profile.reset();for(let i=0;i<4;i++)__profile.frame(t+i/60);},time-4/60);
+          await page.evaluate(async t=>{__profile.reset();for(let i=0;i<4;i++)await __profile.frame(t+i/60);},time-4/60);
           result.samples.push({ side, block, ...await page.evaluate(([t,n,q,c])=>__profile.timing(t,n,q,c),[time,batch,maxQueuedFrames,cooldownMs]) });
         }
       }
       result.summary = [0,1].map(side=>({side,...Object.fromEntries(['gpuMs','wallMs','submitMs'].map(key=>[key,median(result.samples.filter(s=>s.side===side).map(s=>s[key]))]))}));
+      if(maxQueuedFrames===1) for(const summary of result.summary){
+        const frames=result.samples.filter(s=>s.side===summary.side).flatMap(s=>s.chunks.map(c=>c.gpuMs)).sort((a,b)=>a-b);
+        summary.gpuFrameP95Ms=frames[Math.ceil(frames.length*.95)-1];
+        summary.gpuFrameMaximumMs=frames.at(-1);
+      }
       result.gpuReductionPercent = 100 * (1 - result.summary[1].gpuMs / result.summary[0].gpuMs);
       console.log(JSON.stringify({time, summary:result.summary, gpuReductionPercent:result.gpuReductionPercent}));
     } else throw Error('Mode must be compare or bench');

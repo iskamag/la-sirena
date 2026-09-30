@@ -126,9 +126,14 @@ GPU averages exclude cooldown, while wall times include it. Reports record
 `scheduling` and per-sample `deliberateWaitMs`. `--max-queued-frames` and
 `--cooldown-ms` control this policy. The historical results above used sustained
 queues; paced results may differ as clock and load conditions change. Scheduling
-has passed a CPU mock check for queue limits, query sums and sample order;
+has passed `node scripts/check-profile-scheduling.mjs` for queue limits,
+query sums, sample order, disjoint propagation and fence cleanup;
 its live desktop responsiveness remains unverified. No further GPU runs were
-started after the freeze report. Comparisons reset temporal
+started after the freeze report. Preparation, warmup and comparison frames now
+also wait for their completion fence and cooldown. Per-query chunks are recorded
+with their timestamps and frame counts. With one queued frame, summaries include
+`gpuFrameP95Ms` and `gpuFrameMaximumMs`; larger chunks retain averages without
+claiming per-frame tails. Comparisons reset temporal
 history, warm up two frames, then inspect eight consecutive graded-color and
 base-depth frames per timestamp. Depth is the renderer's RGBA8 alpha encoding.
 Graphics/text overlay pixels are outside this comparison; their source is
