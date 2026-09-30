@@ -319,3 +319,14 @@ Reports are in `artifacts/optimization/roof-global-y-*`. The production build,
 352-frame render-state check and independent million-case CPU bound check
 passed after integration. See `ROOF-GLOBAL-Y-BOUND.md` for the enclosure proof
 and the limits of its floating-point model.
+
+A fresh cloud-cost diagnostic based on `3d11da8` replaced only the scene-3
+cloud background call with a constant. Raymarching, geometry, shading and
+postprocessing remained intact. At 1280x720, small paired timings measured
+144 s at 2.239 to 1.758 ms (21.5% reduction) and 160 s at 2.610 to
+2.125 ms (18.6%). This intentionally changes the image and remains an
+uncommitted diagnostic in `/tmp/mus2-diagnostic-cathedral-cloud-cost`.
+The difference identifies substantial remaining cloud cost; it is not an
+independently additive cost or an accepted quality-preserving optimization.
+Two blocks of four frames per side used one queued frame, 250 ms pauses and
+uniform inlining disabled. Report: `artifacts/optimization/current-cathedral-cloud-cost/bench-1280.json`.
