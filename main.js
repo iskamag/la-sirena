@@ -208,6 +208,7 @@ window.__film = {
     const maxTexture = gl.getParameter(gl.MAX_TEXTURE_SIZE), maxViewport = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
     if (width > maxTexture || height > maxTexture || width > maxViewport[0] || height > maxViewport[1]) throw new Error('Export dimensions exceed the GPU render limits.');
     exportResolution = {width, height}; state.offline = true; resize();
+    if (gl.drawingBufferWidth !== width || gl.drawingBufferHeight !== height) throw new Error('The GPU could not allocate the requested export resolution.');
     return {width:world.width, height:world.height};
   },
   get cues(){return score?.cues;},
