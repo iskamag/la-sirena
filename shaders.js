@@ -563,12 +563,16 @@ vec2 mapJewel(vec3 p) {
         if(shard<best) {best=shard;material=fi+8.0;}
     }
     if(density()>.01) {
-        vec3 cage=p;cage.xz=rot(-t*.22+.3)*cage.xz;cage.yz=rot(.34)*cage.yz;
-        float scaffolding=octaWire(cage,2.18+.20*pulse()*u_motion,.010);
-        if(scaffolding<best) {best=scaffolding;material=14.0;}
+        // octaWire >= .75*face-width, and L1 >= L2 before rotation.
+        if((length(p)-(2.18+.20*pulse()*u_motion))*.57735027*.75-.010-.0001<best) {
+            vec3 cage=p;cage.xz=rot(-t*.22+.3)*cage.xz;cage.yz=rot(.34)*cage.yz;
+            float scaffolding=octaWire(cage,2.18+.20*pulse()*u_motion,.010);
+            if(scaffolding<best) {best=scaffolding;material=14.0;}
+        }
         for(int i=0;i<3;i++) {
             float fi=float(i),a=fi*TAU/3.0-t*.23;
             vec3 q=p-vec3(cos(a)*2.5,sin(a)*1.55,sin(a+fi)*.70);
+            if((length(q)-.42)*.57735027*.75-.008-.0001>=best) continue;
             q.xy=rot(a)*q.xy;
             float wire=octaWire(q,.42,.008);
             if(wire<best) {best=wire;material=14.0;}
