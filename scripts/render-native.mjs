@@ -26,8 +26,8 @@ const run=(command,argv)=>done(spawn(command,argv,{stdio:'inherit'}));
 const planArgs=['scripts/native-plan.mjs','--width',String(width),'--height',String(height),'--fps',String(fps),'--start',String(start),'--end',String(start+duration),'--no-png','--output',trace];
 await run(process.execPath,planArgs);
 const codecArgs=codec==='libsvtav1'?['-svtav1-params',`lp=${threads}`]:['-threads',String(threads)];
-const encoder=spawn('ffmpeg',['-y','-hide_banner','-loglevel','error','-f','rawvideo','-pixel_format','rgb24','-video_size',`${width}x${height}`,'-framerate',String(fps),'-i','pipe:0','-an','-vf','scale=in_range=full:out_range=limited:out_color_matrix=bt709','-filter_threads','1','-c:v',codec,'-preset',preset,'-crf',String(crf),...codecArgs,'-pix_fmt',codec==='libsvtav1'?'yuv420p10le':'yuv420p','-color_primaries','bt709','-color_trc','bt709','-colorspace','bt709','-frames:v',String(frames),silent],{stdio:['pipe','inherit','inherit']});
-const renderer=spawn('python3',['scripts/native-replay.py',trace,'--out',work,'--raw','-','--pause-ms',String(pauseMs)],{stdio:['ignore','pipe','pipe']});
+const encoder=spawn('ffmpeg',['-y','-hide_banner','-loglevel','error','-f','rawvideo','-pixel_format','bgra','-video_size',`${width}x${height}`,'-framerate',String(fps),'-i','pipe:0','-an','-vf','scale=in_range=full:out_range=limited:out_color_matrix=bt709','-filter_threads','1','-c:v',codec,'-preset',preset,'-crf',String(crf),...codecArgs,'-pix_fmt',codec==='libsvtav1'?'yuv420p10le':'yuv420p','-color_primaries','bt709','-color_trc','bt709','-colorspace','bt709','-frames:v',String(frames),silent],{stdio:['pipe','inherit','inherit']});
+const renderer=spawn('python3',['scripts/native-replay.py',trace,'--out',work,'--raw','-','--raw-format','bgra','--pause-ms',String(pauseMs)],{stdio:['ignore','pipe','pipe']});
 encoder.stdin.on('error',()=>renderer.kill('SIGTERM'));
 renderer.stdout.pipe(encoder.stdin);
 let pending='';renderer.stderr.on('data',chunk=>{
