@@ -36,7 +36,9 @@ Initial integrated changes passed 184 consecutive-frame comparisons across
 23 timestamp windows at 960×540 with unchanged encoded depth. Most color
 frames matched exactly; flow had differences up to 2/255, RMS below .034.
 Flow lookahead passed an additional 56-frame comparison with exact color
-and encoded-depth matches. These sampled checks do not prove equivalence
+and encoded-depth matches. Nine further frames at 3840×2160 had unchanged
+encoded depth and color differences at most 2/255, RMS below .0015.
+These sampled checks do not prove equivalence
 for every time, resolution, pointer position, or graphics driver.
 
 ## Reproducing checks
@@ -74,4 +76,6 @@ equivalent real-number formulas. These candidates remain unmerged.
 
 A GPU roof transform table also failed the strict image/depth gate during the
 rupture; separate shader compilation can change floating-point hash and rotation
-results even with RGBA32F storage. Per-scene specialization remains experimental.
+results even with RGBA32F storage. Per-scene specialization also failed the
+strict gate, with isolated depth changes in flow and arcade scenes, and remains
+unmerged.
