@@ -213,36 +213,50 @@ vec2 shellWorld(vec3 p,bool swarm) {
 }
 float mapShell(vec3 p) {return shellWorld(p,false).x;}
 
+// A quarter turn is used only by conservative bounds; surviving fields retain
+// their original angle expressions and trigonometric evaluations.
+vec2 flowQuarter(vec2 q,int i) {
+    if(i==1) return vec2(-q.y,q.x);
+    if(i==2) return -q;
+    if(i==3) return vec2(q.y,-q.x);
+    return q;
+}
 // Four luminous organisms, each braided from three independent strands, with cells and links.
 vec2 mapFlow(vec3 p) {
     float t=motionTime(),best=100.0,material=0.0;
     float z=p.z,beat=pulse()*u_motion;
-    vec2 bodies[4];float radii[4];float upper=100.0;
+    float radii[4];float upper=100.0;
     bool bounded=u_time>=0.0&&u_time<=290.0&&u_motion>=0.0&&u_motion<=1.0&&abs(z)<=550.0&&beat>=0.0&&beat<=1.0;
-    // Three strands are separated by 120 degrees, so at least one center
-    // lies within 60 degrees of the radial direction. Its distance bounds
-    // the field from above without choosing or reordering any materials.
+    float a=z*.24+t*.16,b=z*.42+t*.20,c=z*.52,d=z*.47;
+    vec2 qa=vec2(cos(a),sin(a)),qb=vec2(cos(b),sin(b));
+    vec2 qc=vec2(cos(c),sin(c)),qd=vec2(cos(d),sin(d));
+    const vec2 offsets[4]=vec2[4](vec2(1,0),vec2(-.89100659,.45399037),vec2(.58778548,-.80901682),vec2(-.15643486,.98768830));
+    // Approximate centers are used only for rejection. A .0002 position
+    // allowance covers validated float32 phase/addition errors in this domain.
+    for(int i=0;i<4;i++) {
+        vec2 angle=flowQuarter(qa,i),radial=flowQuarter(qb,i);
+        float radius=1.14+.20*radial.y+.07*beat;
+        vec2 center=vec2(angle.x*radius*1.33,angle.y*radius);
+        vec2 offset=offsets[i];
+        center+=.19*vec2(qc.y*offset.x+qc.x*offset.y,flowQuarter(qd,i).x);
+        float r=length(p.xy-center);radii[i]=r;
+        bounded=bounded&&r>=0.0&&r<=64.0;
+        float candidate=(sqrt(r*r+.105*.105-r*.105)-.038-.006*beat)*.48+.0001+.0002*.48;
+        upper=min(upper,candidate);
+    }
+    if(!bounded) upper=100.0;
     for(int i=0;i<4;i++) {
         float fi=float(i),phase=fi*TAU/4.0;
+        float boundRadius=max(.233,max(.143+.006*beat,.106+.016*beat));
+        if(bounded&&(radii[i]-boundRadius)*.48-.0001-.0002*.48>=min(best,upper)) continue;
+        // Recompute the original center only for surviving groups. None of the
+        // approximate trigonometry contributes to distance or material values.
         float angle=phase+z*.24+t*.16;
         float radius=1.14+.20*sin(z*.42+phase+t*.20)+.07*beat;
         vec2 center=vec2(cos(angle)*radius*1.33,sin(angle)*radius);
         center+=.19*vec2(sin(z*.52+phase*1.7),cos(z*.47+phase));
-        bodies[i]=p.xy-center;radii[i]=length(bodies[i]);
-        float r=radii[i];bounded=bounded&&r>=0.0&&r<=64.0;
-        float candidate=(sqrt(r*r+.105*.105-r*.105)-.038-.006*beat)*.48+.0001;
-        upper=min(upper,candidate);
-    }
-    // The rounding margin is validated over the film's finite input domain.
-    // Outside it, preserve the original cutoff and complete material ordering.
-    if(!bounded) upper=100.0;
-    for(int i=0;i<4;i++) {
-        float fi=float(i),phase=fi*TAU/4.0;
-        vec2 body=bodies[i];
-        // Radial lower bounds for the strands, cells, links and filament.
-        // Keep a rounding margin; all surviving field arithmetic is unchanged.
-        float boundRadius=max(.233,max(.143+.006*beat,.106+.016*beat));
-        if((radii[i]-boundRadius)*.48-.0001>=min(best,upper)) continue;
+        vec2 body=p.xy-center;float r=length(body);
+        if((r-boundRadius)*.48-.0001>=min(best,upper)) continue;
         bool detail=density()>.01;
         float cell=0.0,link=0.0,thread=0.0,cutoff=min(best,upper);
         if(detail) {
@@ -257,7 +271,7 @@ vec2 mapFlow(vec3 p) {
         }
         // Look ahead at detail distances without choosing their materials yet.
         // The margin keeps potential strand/detail ties in the original order.
-        if((radii[i]-(.143+.006*beat))*.48-.0001<cutoff) {
+        if((r-(.143+.006*beat))*.48-.0001<cutoff) {
             for(int j=0;j<3;j++) {
                 float fj=float(j),helix=z*2.35+fj*TAU/3.0+phase-t*.30;
                 vec2 q=body-.105*vec2(cos(helix),sin(helix));
