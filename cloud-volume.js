@@ -1,5 +1,6 @@
 import { cloudVolumeFragment } from './shaders.js';
 
+export const cloudVolumeMinimumHeight = 1440;
 const vertex = `#version 300 es
 void main(){vec2 p=vec2(gl_VertexID==1?3.:-1.,gl_VertexID==2?3.:-1.);gl_Position=vec4(p,0.,1.);}`;
 
@@ -7,7 +8,7 @@ void main(){vec2 p=vec2(gl_VertexID==1?3.:-1.,gl_VertexID==2?3.:-1.);gl_Position
 // remain in the full-resolution world pass. Float render support is optional.
 export class CloudVolume {
     constructor(gl) {
-        this.gl=gl;this.enabled=false;this.width=0;this.height=0;
+        this.gl=gl;this.enabled=false;this.valid=false;this.width=0;this.height=0;
         this.fallback=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.fallback);
         gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
         this.parameters();
@@ -46,7 +47,7 @@ export class CloudVolume {
         gl.bindFramebuffer(gl.FRAMEBUFFER,null);
     }
     render(frame,width,height,vao,noiseCache) {
-        this.valid=false;if(!this.enabled||frame.scene!==3)return;
+        this.valid=false;if(!this.enabled||frame.scene!==3||height<cloudVolumeMinimumHeight)return;
         this.resize(width,height);if(!this.enabled)return;
         const gl=this.gl;
         gl.bindFramebuffer(gl.FRAMEBUFFER,this.framebuffer);gl.viewport(0,0,this.width,this.height);
