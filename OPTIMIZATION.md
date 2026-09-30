@@ -291,3 +291,12 @@ small paced cathedral timings were flat at 1280×720 (+.08%/+.04%), and at
 did not improve these sampled render times; the candidate remains unmerged.
 The 4K runs used two blocks of two frames per side; scheduling and driver
 options match the earlier 1000 ms paced experiments.
+
+An angle-only roof cache (`5d48c22`) stored the original three rotation pairs
+in a 12x33 RGBA32F texture, retaining direct evaluation as fallback. It
+passed early 640x360 windows but failed at 169.9 s: maximum color difference
+68/255 and four encoded-depth changes. A same-source cache-disabled/enabled
+comparison reproduced that failure. A small paced 1280x720 opened-roof
+comparison measured 2.695 to 2.718 ms, so neither fidelity nor speed supports
+merging it. The profiler now exposes the cache's allowed/enabled/valid state
+and can disable the baseline roof-angle cache for this diagnostic.

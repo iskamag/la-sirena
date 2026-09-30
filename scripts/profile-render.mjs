@@ -29,6 +29,7 @@ const saveImages = args.includes('--images');
 const motion = Number(option('motion', '1'));
 const pointer = JSON.parse(option('pointer', '[0,0]'));
 const poster = args.includes('--poster');
+const disableBaselineRoofAngles = args.includes('--disable-baseline-roof-angles');
 if (!Number.isFinite(motion) || motion < 0 || motion > 1 || !Array.isArray(pointer) || pointer.length !== 2 || pointer.some(n => !Number.isFinite(n) || Math.abs(n) > 1)) throw Error('Motion must be in [0,1] and pointer must contain two values in [-1,1]');
 const maxDifference = Number(option('max-difference', '2'));
 const maxRMS = Number(option('max-rms', '.05'));
@@ -41,12 +42,16 @@ if(!Number.isInteger(maxQueuedFrames)||maxQueuedFrames<1||!Number.isFinite(coold
 await mkdir(out, { recursive: true });
 const injection = `
 window.__profile = {
-  configure(width,height,motion,pointer,poster,cooldownMs) {
+  configure(width,height,motion,pointer,poster,cooldownMs,disableRoofAngles=false) {
     this.cooldownMs=cooldownMs;
     state.started=!poster;state.offline=true;state.motion=motion;state.pointer=[...pointer];state.smoothPointer=[...pointer];
     getMusic=(t,dt)=>score.musicAt(t);
     world.width=width;world.height=height;
     secondaryLayers.resize(width,height);compositor.resize(width,height);
+    if(disableRoofAngles){
+      if(typeof roofAngleCache==='undefined')throw Error('Baseline has no roof angle cache to disable');
+      roofAngleCache.allowed=false;
+    }
   },
   reset(){compositor.historyReady=false;compositor.lastTime=-100;compositor.lastScene=-1;},
   async drain(){
@@ -68,6 +73,7 @@ window.__profile = {
   features(){return {
     noiseCacheEnabled:typeof noiseCache!=='undefined'&&Boolean(noiseCache.enabled),
     roofAngleCacheEnabled:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.enabled),
+    roofAngleCacheAllowed:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.allowed),
     roofAngleCacheValid:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.valid)
   };},
   capture(){
@@ -168,7 +174,7 @@ try {
     await page.addInitScript(() => { window.requestAnimationFrame = () => 0; });
     await page.goto(`${url}/?preview`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => window.__film?.ready, null, { timeout: 60000 });
-    await page.evaluate(async args => {await document.fonts.ready;window.__profile.configure(...args);}, [width,height,motion,pointer,poster,cooldownMs]);
+    await page.evaluate(async args => {await document.fonts.ready;window.__profile.configure(...args);}, [width,height,motion,pointer,poster,cooldownMs,pages.length===0&&disableBaselineRoofAngles]);
     pages.push(page);
   }
   report.features = [];
