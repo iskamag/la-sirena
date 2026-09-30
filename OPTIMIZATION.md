@@ -390,3 +390,16 @@ baseline metadata and reduction percentages. Default runs retain alternating
 paired measurements. `--candidate-only` rejects comparison mode and baseline
 roof-angle disabling. CPU scheduling and aggregation coverage is included in
 `node scripts/check-profile-scheduling.mjs`.
+
+Removing the per-frame cloud validation query (`a6ef0f1`) showed no useful
+GPU improvement in a small paired default-driver 4K 160 s test. The two
+blocks of two frames measured 17.794 to 18.615 ms (-4.6%); individual
+frame maxima were similar, so this is not a causal explanation of the
+difference. The candidate remains unmerged. Report:
+`artifacts/optimization/cloud-volume-query-4k-default-performance`.
+
+The benchmark tool now supports `--candidate-only --mode bench` for absolute
+one-page audits, avoiding duplicate reference rendering. Reports label the
+side as candidate, retain its source hashes and omit paired reductions.
+CPU scheduling/aggregation checks cover both modes and reject invalid
+one-sided comparisons or missing measurements.

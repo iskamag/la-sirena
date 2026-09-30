@@ -77,6 +77,7 @@ window.__profile = {
     noiseCacheValidity:typeof noiseCache!=='undefined'?(noiseCache.validity??null):null,
     cloudVolumeEnabled:typeof cloudVolume!=='undefined'&&Boolean(cloudVolume.enabled),
     cloudVolumeValid:typeof cloudVolume!=='undefined'&&Boolean(cloudVolume.valid),
+    cloudVolumeValidity:typeof cloudVolume!=='undefined'?(cloudVolume.validity??null):null,
     roofAngleCacheEnabled:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.enabled),
     roofAngleCacheAllowed:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.allowed),
     roofAngleCacheValid:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.valid)
