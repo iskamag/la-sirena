@@ -78,6 +78,8 @@ window.__profile = {
     cloudVolumeEnabled:typeof cloudVolume!=='undefined'&&Boolean(cloudVolume.enabled),
     cloudVolumeValid:typeof cloudVolume!=='undefined'&&Boolean(cloudVolume.valid),
     cloudVolumeValidity:typeof cloudVolume!=='undefined'?(cloudVolume.validity??null):null,
+    primaryGuideEnabled:typeof primaryGuide!=='undefined'&&Boolean(primaryGuide.enabled),
+    primaryGuideValid:typeof primaryGuide!=='undefined'&&Boolean(primaryGuide.valid),
     roofAngleCacheEnabled:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.enabled),
     roofAngleCacheAllowed:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.allowed),
     roofAngleCacheValid:typeof roofAngleCache!=='undefined'&&Boolean(roofAngleCache.valid)
@@ -126,7 +128,7 @@ async function serve(directory, ref) {
   for (const name of ['main.js','shaders.js','newlayers.js','post.js','graphics.js','newscore.js','choreography.js','public/track-analysis.json']) {
     sources[name] = createHash('sha256').update(await get(name)).digest('hex');
   }
-  for (const name of ['flow-bounds.js','shell-bound.js','roof-cache.js','noise-cache.js','roof-angle-cache.js','cloud-volume.js']) {
+  for (const name of ['flow-bounds.js','shell-bound.js','roof-cache.js','noise-cache.js','roof-angle-cache.js','cloud-volume.js','primary-guide.js']) {
     try { sources[name] = createHash('sha256').update(await get(name)).digest('hex'); }
     catch(error) { if ((await get('main.js')).toString().includes(`'./${name}'`)) throw error; }
   }
