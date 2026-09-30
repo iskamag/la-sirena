@@ -109,7 +109,7 @@ async function serve(directory, ref) {
   for (const name of ['main.js','shaders.js','newlayers.js','post.js','graphics.js','newscore.js','choreography.js','public/track-analysis.json']) {
     sources[name] = createHash('sha256').update(await get(name)).digest('hex');
   }
-  for (const name of ['flow-bounds.js','shell-bound.js','roof-cache.js']) {
+  for (const name of ['flow-bounds.js','shell-bound.js','roof-cache.js','noise-cache.js']) {
     try { sources[name] = createHash('sha256').update(await get(name)).digest('hex'); }
     catch(error) { if ((await get('main.js')).toString().includes(`'./${name}'`)) throw error; }
   }

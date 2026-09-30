@@ -27,3 +27,16 @@ cooldown and RadeonSI uniform inlining disabled, measured 144 s at
 24.29→24.35 ms (+0.2%). These small samples and different scheduling cannot
 be compared directly to earlier sustained batches. Cathedral remains above
 16.7 ms. Build, render-state checks and offline GLSL linking passed.
+
+A broader 92-frame comparison at 960×540 against the preceding accepted
+renderer passed across 23 windows: encoded depth matched throughout, with
+color exact except a shell-window maximum of 1/255. Twenty portrait frames
+with reduced motion and an offset pointer matched color and encoded depth
+exactly. These comparisons cover sampled frames, not the whole film.
+
+Driver ISA inspection found unchanged allocation (96 VGPR, 108 SGPR), no
+spills or scratch, and the same compiled maximum of five waves. Generated
+code grew from 363,456 to 417,860 bytes; retaining separate functions has a
+code-size cost. A native 320×180 cathedral frame compiled and rendered without
+GL errors. GPU testing is now suspended following the renewed desktop-freeze
+report; no further hardware validation is implied by CPU-only work.

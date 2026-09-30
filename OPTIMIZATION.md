@@ -19,6 +19,10 @@ the original sample positions, stopping conditions, material order and glow.
 ## Accepted changes
 
 - Conservative shell, flow, roof, tetrahedron, satellite and cage bounds.
+- Closed cathedral roof cells use conservative box bounds before evaluating
+  their two plates. Surviving expressions and the opened-roof path are retained.
+  At 144 s, a small paced 4K comparison measured 23.55→20.83 ms (-11.5%);
+  at 160 s the opened path was essentially unchanged. See `ROOF-CLUSTERS.md`.
 - Compositor-owned secondary rendering avoids synchronous GL state queries.
   Standalone layer rendering retains caller-state restoration.
 - Flow detail lookahead proves when all three strands cannot beat the current
@@ -128,8 +132,10 @@ GPU averages exclude cooldown, while wall times include it. Reports record
 queues; paced results may differ as clock and load conditions change. Scheduling
 has passed `node scripts/check-profile-scheduling.mjs` for queue limits,
 query sums, sample order, disjoint propagation and fence cleanup;
-its live desktop responsiveness remains unverified. No further GPU runs were
-started after the freeze report. Preparation, warmup and comparison frames now
+small GPU comparisons subsequently resumed with one queued frame and 100 ms
+cooldown. Desktop input latency was not measured. After another user report
+of desktop freezes, all GPU testing was suspended again; CPU-only exploration
+continues. Preparation, warmup and comparison frames now
 also wait for their completion fence and cooldown. Per-query chunks are recorded
 with their timestamps and frame counts. With one queued frame, summaries include
 `gpuFrameP95Ms` and `gpuFrameMaximumMs`; larger chunks retain averages without
@@ -216,8 +222,10 @@ Candidate commit `30a087d` contains `CATHEDRAL-BOUNDS.md` and the reusable
 field plus targeted boundaries passed with zero guarded violations or unsafe
 rejections; a second million-sample seed also passed. The combined candidate
 passed the production build, offline glslang GLSL linking and render-state
-check. GPU image equivalence, driver compilation and timing remain unverified;
-no rendering tests were started after the desktop freeze report.
+check. Later hardware tests found late-rupture image differences in variants
+that added roof guards directly to the original function. These variants
+remain unmerged. A floor/pillar/arch-only candidate showed no useful measured
+speedup at 1280×720.
 
 The separate `optimize/roof-vertical` candidate (`f2d1b05`) tightens the plate's
 vertical support to `min(1.903,.068+2.04*opening)` before adding the moving
@@ -226,4 +234,9 @@ trigonometry. CPU roof skips rise to 70.2–72.0% before opening, eliminating
 another 10.6–12.3% of the previous candidate's surviving hash evaluations;
 open-roof skip rates are unchanged. One million random cases per field and
 62,100 targeted roof cases passed for two seeds. Offline GLSL linking passed.
-Neither candidate has hardware image or speed validation.
+The combined vertical candidate reduced a sampled 1280×720 closed-roof
+window by about 13.8%, but failed the strict late-rupture color gate. A
+scaled-coordinate rewrite also failed late-rupture color and encoded depth.
+This led to the accepted separate closed-roof helper in `6d9eb5b`, which keeps
+the original opened function intact and passes the sampled image gates.
+The general hierarchy variants remain unmerged.
