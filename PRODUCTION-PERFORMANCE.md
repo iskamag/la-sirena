@@ -62,3 +62,14 @@ guard already rejects those plates. This lacks a credible large frame gain.
 The next bounded CPU triage measures whether other cathedral fields can
 skip substantial dynamic flute/column/window work while retaining their
 original scalar values. Temporary evidence: /tmp/mus2-partial-roof-cluster-cpu.json.
+
+Cumulative visual comparison
+---------------------------
+
+Current renderer ad9d3c0 was compared directly with the original optimization
+reference 9d414e0 at true 3840x2160. Eight frames at 20/35/150.1/160 retained
+identical encoded depth. Canyon final color was exact; flow, early breach and
+opened cathedral had maximum final color difference 2/255, with RMS <= .02977.
+This checks the combined geometry, cloud and miss-guide changes in those
+windows, rather than comparing only consecutive candidates. It remains
+sampled evidence. Report: artifacts/optimization/cumulative-original-4k-quality.

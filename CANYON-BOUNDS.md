@@ -28,7 +28,7 @@ Each center interval is expanded by .002 and each field lower bound reduced
 by .01. Rejection is enabled only for |p| components<=1024 and |d|<=128;
 outside that domain, original arithmetic runs. These are deliberately generous
 numerical margins, not an assertion of exact driver transcendental/compiler
-behavior. A conventional binary32 operation envelope of 64*epsilon*1030 is
+behavior. A conventional binary32 operation envelope of 64*(2^-24)*1030 (using binary32 unit roundoff) is
 below .004; .01 slack also covers approximate trig rounding in the CPU model.
 Actual GLSL compilation/fusion and driver trig remain GPU-gate requirements.
 
