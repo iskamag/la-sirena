@@ -75,3 +75,19 @@ boundaries, resource failures and stale-guide transitions, and check explicit
 attribute binding and program-specific uniform ownership. Render-state, cloud
 and noise lifecycle checks, native command recording, Vite build and offline
 GLSL compilation passed. Build: 17 modules, 175.66 kB JavaScript (55.30 kB gzip).
+
+Flow extension
+--------------
+
+The same target also supports landscape scene 1 at output height >=1440,
+time in [34.020,81.655), finite supported camera inputs, normalized motion,
+beat and pointer, density in [0,1], and poster disabled. Scene 1 runs its
+original 76-step absolute-distance march and .0013 glow accumulation in the
+guide, with the existing flow coarse-bound validity flag. Its miss packets
+bypass the cathedral-only window support guard. Full-resolution hits retain
+the original normals, shading and materials.
+
+Derived optional shader hashes now match flow candidate 65628ba; production
+world/cloud exports remain unchanged. Cathedral regression checks are repeated
+because the optional shared programs recompile. See FLOW-PRIMARY-MISS-GUIDE.md
+for measured 28–30% flow gains and bounded visual evidence.

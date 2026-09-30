@@ -6,14 +6,23 @@ import { vertexShader, fragmentShader, cloudVolumeFragment } from '../shaders.js
 import { primaryWorldFragment, primaryGuideFragment, createPrimaryWorld } from '../primary-shaders.js';
 import { recordingGL } from './native-gl.mjs';
 const hash=source=>createHash('sha256').update(source).digest('hex');
-// Frozen exported-source hashes from production 0f7b6fb and tested window-guard 8bd869a.
+// Frozen production sources and GPU-tested flow guide candidate 65628ba.
 assert.equal(hash(fragmentShader),'bdaf3b3bf37a2098e5af47c92956d6787e7e22b666460e109723cdaaecc15748');
 assert.equal(hash(cloudVolumeFragment),'545733c2195aa83a924a6635d76e38fdaa6f4b6785ebc14bb9332a21c46928b7');
-assert.equal(hash(primaryWorldFragment),'92f58c04d9eb3586f5247de26fc48a85755414a0f8e0e8fc3b75f1b3a60f07a5');
-assert.equal(hash(primaryGuideFragment),'a14686c7b29df50994d0fbeeb1d12bf6a5c775e462208892348d35f4fbd08045');
+assert.equal(hash(primaryWorldFragment),'fb919c80530d045f11994a726282e10085d4d7f880b4b052c2f80ef1168a3447');
+assert.equal(hash(primaryGuideFragment),'374509b0725bc032c661025078726c49da35bcc10b6f42b13846d98a2c5c0e33');
 assert(primaryGuideFragment.includes('gl_FragCoord.xy*u_resolution/u_primaryGuideResolution'));
-assert(primaryGuideFragment.includes('for(int i=0;i<60;i++)'));
+assert(primaryGuideFragment.includes('for(int i=0;i<76;i++)'));
+assert(primaryGuideFragment.includes('if(i>=60&&scene!=1) break;'));
+assert(primaryGuideFragment.includes('if(scene==1) d=abs(d);'));
+assert(primaryGuideFragment.includes('scene==1?.0013:.00075'));
+assert(primaryGuideFragment.includes('scene==1||windowGuideClear'));
+assert(primaryGuideFragment.includes('guideRay(uv,int(u_scene+.5))'));
 const frame={scene:3,time:160,motion:1,beat:0,pointer:[0,0],event:[23.9,10.29,1,0],audio:[0,0,0,0],energy:[0,0,0,0],local:.7,seed:0,poster:0,shot:0,density:1};
+const flowFrame={...frame,scene:1,time:35};
+assert(primaryGuideEligible(flowFrame,1440));
+assert(primaryGuideEligible({...flowFrame,time:58},2160));
+for(const change of [{time:34.020-1e-8},{time:81.655},{scene:2},{poster:1},{shot:Infinity},{seed:NaN},{motion:NaN},{beat:1.01},{pointer:[0,1.01]},{density:-.01}])assert(!primaryGuideEligible({...flowFrame,...change},2160));
 assert(primaryGuideEligible(frame,1440));assert(primaryGuideEligible({...frame,time:156.515},1440));
 assert(primaryGuideEligible({...frame,time:151,event:[14.9,1.29,.1776171875,0]},1440));
 assert(primaryGuideEligible({...frame,time:152,event:[15.9,2.29,.4648775674,0]},2160));
@@ -43,6 +52,10 @@ for(const failure of ['no-api','unsupported','extension','compile','link','attac
    cache.render(next,2561,height,vao,noise);cache.bind(locations,next);assert.equal(cache.valid,false);assert.equal(last(),0);
    assert.equal(gl.commands.filter(c=>c.op==='drawArrays').length,draws,'Ineligible frames cannot submit guide work or reuse stale validity');
   }
+  cache.render(flowFrame,2561,1441,vao,noise);cache.bind(locations,flowFrame);
+  assert.equal(cache.valid,true);assert.equal(last(),1);
+  assert.equal(gl.commands.filter(c=>c.op==='uniform1f'&&c.args[0].name==='u_flowBoundValid').at(-1)?.args[1],1);
+  cache.render({...flowFrame,time:81.655},2561,1441,vao,noise);cache.bind(locations,{...flowFrame,time:81.655});assert.equal(cache.valid,false);assert.equal(last(),0);
   cache.render(frame,2561,1441,vao,noise);assert.equal(cache.valid,true);
   const beforePortrait=gl.commands.filter(c=>c.op==='drawArrays').length;
   cache.render(frame,1440,2560,vao,noise);cache.bind(locations,frame);
@@ -67,4 +80,4 @@ for(const failure of [null,'compile','link','attribute-api']){
  const programs=gl.commands.filter(c=>c.op==='createProgram').map(c=>c.result);
  for(const program of programs)assert.equal(gl.commands.filter(c=>c.op==='deleteProgram'&&c.args[0].resource===program).length,1);
 }
-console.log('Frozen production/guide source hashes, partial/opened high-resolution eligibility, stale validity, capability/draw fallback, compatible attribute binding and resource cleanup passed.');
+console.log('Frozen production/guide source hashes, opened/high-resolution eligibility, stale validity, capability/draw fallback, compatible attribute binding and resource cleanup passed.');

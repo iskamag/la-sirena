@@ -1,14 +1,20 @@
 import { primaryGuideFragment } from './primary-shaders.js';
 import { cloudFrameCertified } from './noise-cache.js';
+import { flowBoundValidity } from './flow-bounds.js';
 
 export const primaryGuideMinimumHeight = 1440;
 const finiteGPU=value=>Number.isFinite(value)&&Number.isFinite(Math.fround(value));
 export function primaryGuideEligible(frame,height) {
-    return height>=primaryGuideMinimumHeight&&cloudFrameCertified(frame)&&
-        frame.time>=151&&frame.event[2]>0&&frame.poster===0&&
-        finiteGPU(frame.density)&&frame.density>=0&&frame.density<=1&&
+    if(height<primaryGuideMinimumHeight||frame.poster!==0||
+       !finiteGPU(frame.density)||frame.density<0||frame.density>1) return false;
+    if(frame.scene===1) {
+        return frame.time>=34.020&&frame.time<81.655&&flowBoundValidity(frame)===1&&
+            finiteGPU(frame.seed)&&finiteGPU(frame.shot);
+    }
+    return cloudFrameCertified(frame)&&frame.time>=151&&frame.event[2]>0&&
         finiteGPU(frame.event[0]);
 }
+
 const vertex = `#version 300 es
 void main(){vec2 p=vec2(gl_VertexID==1?3.:-1.,gl_VertexID==2?3.:-1.);gl_Position=vec4(p,0.,1.);}`;
 
@@ -61,7 +67,7 @@ export class PrimaryGuide {
         gl.bindFramebuffer(gl.FRAMEBUFFER,this.framebuffer);gl.viewport(0,0,this.width,this.height);
         gl.disable(gl.BLEND);gl.disable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);
         gl.useProgram(this.program);gl.bindVertexArray(vao);
-        const values={...frame,resolution:[width,height],primaryGuideResolution:[this.width,this.height],flowBoundValid:0,noiseCache:5,noiseCacheValid:0,cloudVolume:6,cloudVolumeValid:0,primaryGuide:7,primaryGuideValid:0};
+        const values={...frame,resolution:[width,height],primaryGuideResolution:[this.width,this.height],flowBoundValid:flowBoundValidity(frame),noiseCache:5,noiseCacheValid:0,cloudVolume:6,cloudVolumeValid:0,primaryGuide:7,primaryGuideValid:0};
         // A complete fallback on unit 6 avoids a feedback loop even if uniforms
         // in unused functions survive shader compilation.
         gl.activeTexture(gl.TEXTURE0+6);gl.bindTexture(gl.TEXTURE_2D,this.fallback);
@@ -81,7 +87,7 @@ export class PrimaryGuide {
         gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,width,height);
     }
     bind(locations,frame) {
-        const gl=this.gl,valid=this.enabled&&this.valid&&frame.scene===3;
+        const gl=this.gl,valid=this.enabled&&this.valid&&(frame.scene===1||frame.scene===3);
         gl.activeTexture(gl.TEXTURE0+7);gl.bindTexture(gl.TEXTURE_2D,valid?this.texture:this.fallback);
         gl.uniform1i(locations.primaryGuide,7);gl.uniform1f(locations.primaryGuideValid,valid?1:0);
     }

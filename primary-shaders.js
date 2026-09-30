@@ -30,7 +30,7 @@ bool primaryGuideMiss(vec2 screen,float angularMargin,inout float glow) {
 let world=replaceOnce(fragmentShader,'uniform float u_cloudVolumeValid;\n','uniform float u_cloudVolumeValid;\nuniform sampler2D u_primaryGuide;\nuniform float u_primaryGuideValid;\n');
 world=replaceOnce(world,'vec3 rayWorld(vec2 uv,int scene) {',missHelper+'vec3 rayWorld(vec2 uv,int scene) {');
 world=replaceOnce(world,'    bool hit=false;\n    for(int i=0;i<76;i++) {',`    bool hit=false;
-    bool reuseMiss=scene==3&&primaryGuideMiss(gl_FragCoord.xy/u_resolution,
+    bool reuseMiss=(scene==1||scene==3)&&primaryGuideMiss(gl_FragCoord.xy/u_resolution,
                                           2.5/(u_resolution.y*max(lens,.8)),glow);
     if(!reuseMiss) {
     for(int i=0;i<76;i++) {`);
@@ -47,22 +47,24 @@ ${windowGuideGLSL}
 `+world.slice(guideCameraStart,guideCameraEnd).replace('vec3 rayWorld','vec4 guideRay')+`
     float travel=.05,glow=0.0,clearance=100.0;
     bool hit=false;
-    for(int i=0;i<60;i++) {
+    for(int i=0;i<76;i++) {
+        if(i>=60&&scene!=1) break;
         vec3 p=ro+rd*travel;
-        float d=mapWorld(p,3);
-        glow+=.00075/(.014+d*d);
+        float d=mapWorld(p,scene);
+        if(scene==1) d=abs(d);
+        glow+=(scene==1?.0013:.00075)/(.014+d*d);
         clearance=min(clearance,d/(1.0+travel));
         if(d<.0016*(1.0+travel*.06)) {hit=true;break;}
         travel+=max(d*.78,.003);
         if(travel>32.0) break;
     }
-    bool windowClear=!hit&&windowGuideClear(ro,rd,lens,u_resolution,u_primaryGuideResolution);
+    bool windowClear=!hit&&(scene==1||windowGuideClear(ro,rd,lens,u_resolution,u_primaryGuideResolution));
     return vec4(min(glow,2.0),hit?1.0:0.0,clearance,windowClear?1.0:0.0);
 }
 void main(){
     vec2 pixel=gl_FragCoord.xy*u_resolution/u_primaryGuideResolution;
     vec2 uv=(pixel-.5*u_resolution)/u_resolution.y;
-    fragColor=guideRay(uv,3);
+    fragColor=guideRay(uv,int(u_scene+.5));
 }
 `;
 
