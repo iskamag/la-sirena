@@ -2,7 +2,7 @@
 
 A full-length procedural music film for the supplied `song.mod`. A shadowcat opens the transmission; the environments take over. A brief sentinel anticipates the cathedral's rupture, a runner guides the bonus circuit, and a swimming shadowcat returns in the concluding ocean. Eleven worlds include chrome sea forms, braided organisms, velocity gates, a spectral cathedral, a shattering prism, acid sculpture, a shell swarm, a mercury spine, shadow transmission, an eclipse ocean, and a videogame circuit. Cat-free transmission shots reveal an ion storm, a crystal canyon, and a spectral horizon.
 
-The current revision plays in the app. `npm run render:full` exports the complete original song and film at 1920×1080 / 30fps.
+The complete current film is available as **[4K60 SVT-AV1](artifacts/la-sirena-4k60-svt-av1.mp4)**: 3840×2160, 60fps, 10-bit BT.709, CRF18, 4:49, with the original song encoded as AAC192. The 1.93GB export decoded to the end; all 17,360 frame timestamps are continuous, including the resumed export boundary. Representative visuals and full-length audio were checked. `npm run render:4k` reproduces these export settings; `npm run render:full` exports at 1920×1080 / 30fps.
 
 Fresh exports of the revised passages are the **[61.3-second velocity rise into LS04](artifacts/la-sirena-velocity-rise.mp4)** at 1280×720 / 30fps and the complete **[27.3-second vertical ocean finale](artifacts/la-sirena-ocean-return-vertical.mp4)** at 720×1280 / 30fps. Both contain the original song for their displayed times.
 
