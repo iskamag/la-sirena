@@ -75,3 +75,28 @@ floor-based distance upper envelope rejected only .048% of opened-roof hashes
 and no plate fields while adding substantial setup. No-hit certificates have
 more promising CPU coverage because they only need to exclude surface hits;
 glow still needs to be retained separately.
+
+The certificate-gated variant `8c5d25d` was benchmarked before further image
+checks and parked. At 160 s it measured 18.29222 -> 18.23067 ms (0.34%);
+at 169.9 s, 18.05133 -> 17.74601 ms (1.69%). Its hash-independent capsules
+reject too few rays and add enough work to erase the large prototype gain.
+No micro-tuning or additional GPU quality runs are planned for this version.
+Report: `artifacts/optimization/primary-certified-4k-performance/bench-3840.json`.
+
+A sixteen-window Ultra 2560x1440 chapter sweep exposed a real thin-feature
+failure at 136.1 s: two depth pixels changed from 28 (hit) to 255 (miss),
+with maximum final color difference 100. The other fifteen windows had no
+depth changes; 145.3 s also exceeded the strict color maximum with value 3.
+The same-source guide-disabled/enabled diagnostic reproduced the two lost
+hits, proving this is guide reuse rather than a shader-source precision shift.
+Coordinates are (55,848) and (55,849), measured from the readback's bottom.
+CPU replay identifies narrow window spokes between the four guide rays.
+Normalized sample clearance is insufficient to exclude these unsampled hits.
+Reports: `artifacts/optimization/primary-miss-guide-ultra-chapter-quality` and
+`artifacts/optimization/primary-miss-guide-hidden-hit-diagnostic`.
+
+The next isolated candidate will require a cheap whole-tile exclusion of
+periodic window/spoke support volumes. This addresses a reproduced fidelity
+bug in the structural optimization; it is not another small performance gate.
+An original-program fallback outside the validated opened/high-resolution
+domain is also being prepared. Neither source change is production-ready yet.

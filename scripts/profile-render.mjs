@@ -31,6 +31,7 @@ const motion = Number(option('motion', '1'));
 const pointer = JSON.parse(option('pointer', '[0,0]'));
 const poster = args.includes('--poster');
 const disableBaselineRoofAngles = args.includes('--disable-baseline-roof-angles');
+const disableBaselinePrimaryGuide = args.includes('--disable-baseline-primary-guide');
 const candidateOnly = args.includes('--candidate-only');
 if (!Number.isFinite(motion) || motion < 0 || motion > 1 || !Array.isArray(pointer) || pointer.length !== 2 || pointer.some(n => !Number.isFinite(n) || Math.abs(n) > 1)) throw Error('Motion must be in [0,1] and pointer must contain two values in [-1,1]');
 const maxDifference = Number(option('max-difference', '2'));
@@ -38,13 +39,14 @@ const maxRMS = Number(option('max-rms', '.05'));
 const budget = Number(option('budget-ms', 'Infinity'));
 const times = JSON.parse(option('times', '[1.5,11,14,20,24,35,58,91,110,129.3,144,150.1,156.6,160,169.9,180,195,215,235,249,270,281,286]'));
 validateBenchmarkMode({mode,candidateOnly,disableBaselineRoofAngles});
+if(candidateOnly&&disableBaselinePrimaryGuide)throw Error('--candidate-only cannot disable a baseline primary guide');
 if(!Array.isArray(times)||times.length===0||times.some(t=>!Number.isFinite(t)||t<0)) throw Error('Times must be a nonempty array of finite nonnegative numbers');
 if (![width, height, blocks, batch, sequence].every(n => Number.isInteger(n) && n > 0)) throw Error('Positive integer dimensions/counts required');
 if(!Number.isInteger(maxQueuedFrames)||maxQueuedFrames<1||!Number.isFinite(cooldownMs)||cooldownMs<0) throw Error('Use positive integer max-queued-frames and nonnegative cooldown-ms');
 await mkdir(out, { recursive: true });
 const injection = `
 window.__profile = {
-  configure(width,height,motion,pointer,poster,cooldownMs,disableRoofAngles=false) {
+  configure(width,height,motion,pointer,poster,cooldownMs,disableRoofAngles=false,disablePrimaryGuide=false) {
     this.cooldownMs=cooldownMs;
     state.started=!poster;state.offline=true;state.motion=motion;state.pointer=[...pointer];state.smoothPointer=[...pointer];
     getMusic=(t,dt)=>score.musicAt(t);
@@ -53,6 +55,10 @@ window.__profile = {
     if(disableRoofAngles){
       if(typeof roofAngleCache==='undefined')throw Error('Baseline has no roof angle cache to disable');
       roofAngleCache.allowed=false;
+    }
+    if(disablePrimaryGuide){
+      if(typeof primaryGuide==='undefined')throw Error('Baseline has no primary guide to disable');
+      primaryGuide.enabled=false;
     }
   },
   reset(){compositor.historyReady=false;compositor.lastTime=-100;compositor.lastScene=-1;},
@@ -128,7 +134,7 @@ async function serve(directory, ref) {
   for (const name of ['main.js','shaders.js','newlayers.js','post.js','graphics.js','newscore.js','choreography.js','public/track-analysis.json']) {
     sources[name] = createHash('sha256').update(await get(name)).digest('hex');
   }
-  for (const name of ['flow-bounds.js','shell-bound.js','roof-cache.js','noise-cache.js','roof-angle-cache.js','cloud-volume.js','primary-guide.js']) {
+  for (const name of ['flow-bounds.js','shell-bound.js','roof-cache.js','noise-cache.js','roof-angle-cache.js','cloud-volume.js','primary-guide.js','cathedral-miss-certificate.js']) {
     try { sources[name] = createHash('sha256').update(await get(name)).digest('hex'); }
     catch(error) { if ((await get('main.js')).toString().includes(`'./${name}'`)) throw error; }
   }
@@ -151,12 +157,16 @@ function difference(a, b) {
   if (a.length !== b.length) throw Error('Image size mismatch');
   let changed = 0, squared = 0, maximum = 0, overTwo = 0;
   const channels = [0, 0, 0, 0];
+  const alphaSamples = [];
   for (let i = 0; i < a.length; i++) {
     const d = Math.abs(a[i] - b[i]);
-    if (d) { changed++;channels[i % 4]++; }
+    if (d) {
+      changed++;channels[i % 4]++;
+      if(i%4===3&&alphaSamples.length<16)alphaSamples.push({x:Math.floor(i/4)%width,yBottom:Math.floor(i/4/width),baseline:a[i],candidate:b[i]});
+    }
     squared += d * d;maximum = Math.max(maximum, d);if (d > 2) overTwo++;
   }
-  return { changed, maximum, rms: Math.sqrt(squared / a.length), fraction: changed / a.length, overTwo, channels };
+  return { changed, maximum, rms: Math.sqrt(squared / a.length), fraction: changed / a.length, overTwo, channels, alphaSamples };
 }
 async function saveCapture(page, capture, path) {
   const png = await page.evaluate(({encoded,width,height}) => {
@@ -182,7 +192,7 @@ try {
     await page.addInitScript(() => { window.requestAnimationFrame = () => 0; });
     await page.goto(`${url}/?preview`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => window.__film?.ready, null, { timeout: 60000 });
-    await page.evaluate(async args => {await document.fonts.ready;window.__profile.configure(...args);}, [width,height,motion,pointer,poster,cooldownMs,pages.length===0&&disableBaselineRoofAngles]);
+    await page.evaluate(async args => {await document.fonts.ready;window.__profile.configure(...args);}, [width,height,motion,pointer,poster,cooldownMs,pages.length===0&&disableBaselineRoofAngles,pages.length===0&&disableBaselinePrimaryGuide]);
     pages.push(page);
   }
   report.features = [];
