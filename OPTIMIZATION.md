@@ -94,6 +94,10 @@ so its 18.10 ms average mixes scenes. Other sampled windows were below
 Initial integrated changes passed 184 consecutive-frame comparisons across
 23 timestamp windows at 960×540 with unchanged encoded depth. Most color
 frames matched exactly; flow had differences up to 2/255, RMS below .034.
+A fresh repeat against the original `9d414e0`, including the shell floor
+lookahead and current flow bounds, passed all 184 frames with the same limits:
+unchanged encoded depth, exact color outside the two flow windows, maximum
+flow difference 2/255 and RMS below .034. Reference/candidate PNGs were saved.
 Flow lookahead passed an additional 56-frame comparison with exact color
 and encoded-depth matches. Nine further frames at 3840×2160 had unchanged
 encoded depth and color differences at most 2/255, RMS below .0015.
