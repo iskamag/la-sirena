@@ -218,3 +218,12 @@ rejections; a second million-sample seed also passed. The combined candidate
 passed the production build, offline glslang GLSL linking and render-state
 check. GPU image equivalence, driver compilation and timing remain unverified;
 no rendering tests were started after the desktop freeze report.
+
+The separate `optimize/roof-vertical` candidate (`f2d1b05`) tightens the plate's
+vertical support to `min(1.903,.068+2.04*opening)` before adding the moving
+center interval. Inverse-rotation axis support gives this bound without new
+trigonometry. CPU roof skips rise to 70.2–72.0% before opening, eliminating
+another 10.6–12.3% of the previous candidate's surviving hash evaluations;
+open-roof skip rates are unchanged. One million random cases per field and
+62,100 targeted roof cases passed for two seeds. Offline GLSL linking passed.
+Neither candidate has hardware image or speed validation.
