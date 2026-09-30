@@ -355,3 +355,24 @@ five encoded-depth changes. Earlier frames were exact or differed by at most
 justified by this measured result. Two blocks of four frames per side used
 one queued frame, 250 ms pauses and uniform inlining disabled. Reports:
 `artifacts/optimization/roof-winner-paced-*`.
+
+The full-float distant-cloud prepass (`75c7d43`, `22282f1`, `7f1d055`) uses
+half-resolution RGBA32F radiance while keeping the nearby sheet, lighting,
+geometry, raymarching and compositor at full resolution. It is enabled at
+output height >=1440 with supported float rendering/filtering; other paths
+retain direct evaluation. The initial RGBA16F prototype improved 4K timing
+but failed the RMS gate; full-float storage repaired the sampled failures.
+
+Integrated default-driver paired 4K timing measured 144 s at 17.586 to
+15.455 ms (12.12%) and 160 s at 20.723 to 18.387 ms (11.27%). Two blocks
+of two frames per side used one queued frame and 1000 ms pauses. All 42
+sampled image frames retained identical encoded depth. Active high-resolution
+frames had maximum color difference 2/255 and RMS <=.02291; all 23
+lower-resolution fallback chapter samples were exact. Gates include Ultra,
+portrait pointer/reduced-motion controls, motion disabled and a post-integration
+4K pair. The saved production 4K image was viewed directly. This approximation
+passes the sampled color/depth gates; universal equality is not claimed.
+Build, float capability/lifecycle/eligibility checks, cache-domain checks,
+352-frame render-state check and native fallback recording passed. The opened
+4K window still exceeds 16.67 ms, so whole-film 4K60 remains unproven. See
+`CLOUD-VOLUME.md` and `artifacts/optimization/cloud-volume-integrated-*`.

@@ -1,7 +1,7 @@
-# Distant cathedral cloud volume candidate
+# Distant cathedral cloud volume
 
 Integrated parent: `4071d47`, including the certified cloud hash cache. This
-candidate remains under GPU validation. The new prepass runs only in scene 3
+source is integrated in `75c7d43`, `22282f1` and `7f1d055` after the sampled gates below. The new prepass runs only in scene 3
 at output height at least 1440, covering Ultra 2560×1440 and true 3840×2160.
 Lower resolutions execute the original twelve-layer volume loop in the main
 shader. Missing float rendering or linear filtering support also uses that
@@ -19,8 +19,8 @@ and volume loop, including the certified hash-cache fast path.
 This introduces spatial interpolation, regrouping of additive radiance away
 from the original base-sky accumulator, and separate-program code generation.
 RGBA32F avoids the half-float quantization of the first prototype. No global
-error bound is claimed. The height threshold preserves direct evaluation where
-lower-resolution interpolation previously exceeded the chosen image gates.
+error bound is claimed. The height threshold limits interpolation to high output resolutions covered
+by the image gates; smaller outputs retain direct evaluation.
 
 ## Evidence and remaining gates
 
@@ -30,8 +30,25 @@ gate. Those timings belong to the rejected half-float prototype. The RGBA32F
 revision passed preliminary 4K windows at 160 and 169.9 seconds against parent
 `1a9a892`: maximum color difference 2/255, RMS .0144/.0156, encoded depth
 unchanged. These are sampled gates, not proof of all frames or configurations.
-The integrated candidate still needs paired timing, Ultra/4K comparisons,
-transitions, varied motion/pointer/shot settings and temporal motion inspection.
+The integrated source passed 42 sampled frames against `4071d47`: three
+initial 4K frames, eight Ultra 2560x1440 frames, three portrait 1440x2560
+frames with motion .2 and pointer [.8,-.7], three 4K motion-disabled frames,
+23 lower-resolution fallback frames across chapters and two post-integration
+4K frames. Encoded depth was identical in every frame. Active-prepass color
+differences were at most 2/255, with RMS at most .02291; fallback frames were
+exact. A saved production 4K frame was inspected for cloud billows, nearby
+sheet detail, roof fragments and thin cathedral geometry. These sparse
+samples do not establish all-frame or all-device perceptual equivalence.
+
+Small paired true-4K timing with default driver options measured closed
+144 s at 17.586 to 15.455 ms (12.12%) and opened 160 s at 20.723 to
+18.387 ms (11.27%). Each side had two blocks of two timed frames, one
+queued frame and 1000 ms pauses. Runtime records confirm both the cloud
+prepass and certified hash cache were active. The closed sampled window
+is below 16.67 ms; the opened window remains above it. Whole-film 4K60,
+frame-time tails and continuous temporal motion inspection remain unverified.
+Reports: `artifacts/optimization/cloud-volume-integrated-*` and
+`cloud-volume-production-4k-default-check`.
 
 `scripts/check-cloud-volume-error.py` is preliminary CPU opportunity evidence
 for the earlier half-float reconstruction. It samples distant radiance only;
