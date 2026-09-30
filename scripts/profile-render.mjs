@@ -23,6 +23,7 @@ const blocks = Number(option('blocks', '4'));
 const batch = Number(option('batch', '24'));
 const sequence = Number(option('sequence', '8'));
 const check = args.includes('--check');
+const saveImages = args.includes('--images');
 const motion = Number(option('motion', '1'));
 const pointer = JSON.parse(option('pointer', '[0,0]'));
 const poster = args.includes('--poster');
@@ -105,6 +106,18 @@ function difference(a, b) {
   }
   return { changed, maximum, rms: Math.sqrt(squared / a.length), fraction: changed / a.length, overTwo, channels };
 }
+async function saveCapture(page, capture, path) {
+  const png = await page.evaluate(({encoded,width,height}) => {
+    const raw=atob(encoded),pixels=new Uint8ClampedArray(raw.length);
+    // readPixels starts at the bottom; PNG canvases start at the top.
+    for(let y=0;y<height;y++) for(let x=0;x<width*4;x++)
+      pixels[y*width*4+x]=raw.charCodeAt((height-1-y)*width*4+x);
+    const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+    canvas.getContext('2d').putImageData(new ImageData(pixels,width,height),0,0);
+    return canvas.toDataURL('image/png').split(',')[1];
+  }, {encoded:capture.image,width,height});
+  await writeFile(path,Buffer.from(png,'base64'));
+}
 const median = values => { const a = [...values].sort((x, y) => x - y);return (a[Math.floor((a.length - 1) / 2)] + a[Math.floor(a.length / 2)]) / 2; };
 const servers = [await serve(baselineRoot, baselineRef), await serve(root, null)];
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--use-gl=angle', '--use-angle=gl', '--ignore-gpu-blocklist', '--disable-background-timer-throttling'] });
@@ -137,6 +150,8 @@ try {
         const captures = [];
         for (const page of pages) captures.push(await page.evaluate(({t,capture})=>{__profile.frame(t);return capture?__profile.capture():null;}, {t,capture:frame>=0}));
         if (frame < 0) continue;
+        if(saveImages&&frame===0) for(const side of [0,1])
+          await saveCapture(pages[side],captures[side],resolve(out,`${time}-${side===0?'baseline':'candidate'}.png`));
         const metrics = { time: t, image: difference(Buffer.from(captures[0].image,'base64'),Buffer.from(captures[1].image,'base64')), base: difference(Buffer.from(captures[0].base,'base64'),Buffer.from(captures[1].base,'base64')), glErrors: captures.map(x=>x.glError) };
         result.frames.push(metrics);
       }

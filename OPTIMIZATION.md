@@ -88,6 +88,8 @@ npm run profile:render -- --baseline-ref 9d414e0 --mode bench --width 3840 --hei
 The profiler serves frozen source snapshots and injects its QA hooks in memory.
 Snapshots include choreography and optional bound/cache helpers. Reports record
 the selected world and shot, and explicit Mesa driver diagnostic options.
+`--images` saves the first compared graded frame at each timestamp as baseline
+and candidate PNGs, flipped from GL's bottom-first rows for visual inspection.
 It records source hashes, rejects software rendering, and uses disjoint GPU
 timer queries plus completion fences. Timings alternate reference/candidate
 order across four blocks of 24 advancing frames. Comparisons reset temporal
