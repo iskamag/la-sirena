@@ -8,6 +8,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "verify": "node scripts/verify.mjs",
     "verify:score": "node scripts/native-plan.mjs --source-only --output artifacts/qa/score-check.jsonl",
+    "verify:render-state": "node scripts/check-render-state.mjs",
+    "profile:render": "node scripts/profile-render.mjs",
     "audio:prepare": "python3 scripts/prepare-audio.py",
     "render": "node scripts/render-film.mjs",
     "render:native": "node scripts/render-native.mjs",
