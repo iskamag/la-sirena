@@ -58,9 +58,10 @@ for(const change of [
 {
     const gl=mock(null),cache=new NoiseCache(gl),program=gl.createProgram();
     const locations={noiseCache:gl.getUniformLocation(program,'u_noiseCache'),noiseCacheValid:gl.getUniformLocation(program,'u_noiseCacheValid')};
-    cache.bind(locations,certified);assert.equal(uniform(gl,'u_noiseCacheValid'),2);
-    cache.bind(locations,{...certified,time:171});assert.equal(uniform(gl,'u_noiseCacheValid'),1);
-    cache.enabled=false;cache.bind(locations,certified);assert.equal(uniform(gl,'u_noiseCacheValid'),0);
+    assert.equal(cache.validity,0);
+    cache.bind(locations,certified);assert.equal(uniform(gl,'u_noiseCacheValid'),2);assert.equal(cache.validity,2);
+    cache.bind(locations,{...certified,time:171});assert.equal(uniform(gl,'u_noiseCacheValid'),1);assert.equal(cache.validity,1);
+    cache.enabled=false;cache.bind(locations,certified);assert.equal(uniform(gl,'u_noiseCacheValid'),0);assert.equal(cache.validity,0);
     cache.dispose();
 }
 console.log('Cloud coordinate certificate boundaries and cache flags 0/1/2 passed.');
