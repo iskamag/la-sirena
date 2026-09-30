@@ -13,7 +13,7 @@ export class CloudVolume {
         this.parameters();
         if(!gl.getExtension)return;
         try {
-            if(!gl.getExtension('EXT_color_buffer_float'))return;
+            if(!gl.getExtension('EXT_color_buffer_float')||!gl.getExtension('OES_texture_float_linear'))return;
             this.program=gl.createProgram();
             for(const [type,source] of [[gl.VERTEX_SHADER,vertex],[gl.FRAGMENT_SHADER,cloudVolumeFragment]]) {
                 const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);
@@ -38,7 +38,7 @@ export class CloudVolume {
         const gl=this.gl,w=Math.ceil(width/2),h=Math.ceil(height/2);
         if(w===this.width&&h===this.height)return;
         gl.bindTexture(gl.TEXTURE_2D,this.texture);
-        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,w,h,0,gl.RGBA,gl.HALF_FLOAT,null);this.parameters();
+        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA32F,w,h,0,gl.RGBA,gl.FLOAT,null);this.parameters();
         gl.bindFramebuffer(gl.FRAMEBUFFER,this.framebuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,this.texture,0);
         if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)this.release();
