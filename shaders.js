@@ -379,7 +379,7 @@ float templeTravel() {
     return travel;
 }
 
-float templeRoof(vec3 p) {
+float templeRoof(vec3 p,float cutoff) {
     float opening=rupture();
     // A conservative bound avoids expensive fragment evaluation below the vault.
     float bound=max(2.95-p.y,abs(p.x)-5.20);
@@ -395,6 +395,10 @@ float templeRoof(vec3 p) {
             center.y+=opening*(1.30+3.6*h)+.045*onset()*opening;
             center.z+=(h-.5)*opening*1.15;
             vec3 q=p-center;
+            // The rounded plate lies in a sphere of radius
+            // length(vec3(1.105,.050,1.525))+.018 <1.903.
+            // The clipping plane can only increase its field value.
+            if((length(q)-1.903)*.72-.0001>=min(slab,cutoff)) continue;
             q.xz=rot(side*opening*(.16+.43*h))*q.xz;
             q.xy=rot(side*opening*(.26+.62*h))*q.xy;
             q.yz=rot((h-.5)*opening*1.4)*q.yz;
@@ -441,7 +445,7 @@ float mapCathedral(vec3 p) {
         vec3 crown=q-vec3(0,3.01,0);crown.y*=.65;
         d=min(d,octaWire(crown,.58,.012));
     }
-    return min(d,templeRoof(p));
+    return min(d,templeRoof(p,d));
 }
 
 float mapAcid(vec3 p) {
