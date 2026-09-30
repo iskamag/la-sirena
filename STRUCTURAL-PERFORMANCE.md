@@ -100,3 +100,28 @@ periodic window/spoke support volumes. This addresses a reproduced fidelity
 bug in the structural optimization; it is not another small performance gate.
 An original-program fallback outside the validated opened/high-resolution
 domain is also being prepared. Neither source change is production-ready yet.
+
+Production integration
+----------------------
+
+`e5422c7` integrates the window-guarded guide with a separate optional world
+program. The original world/cloud shader strings are preserved. Eligibility
+requires landscape/square output height >=1440, a fully opened cathedral and
+certified controls; portrait and other frames select the original program.
+The previously lost spokes were restored in a four-frame Ultra check before
+integration. The expensive all-scene capsule variant remains parked.
+
+Integrated 4K timings at 156.515/160/169.9 s measured
+17.132/18.476/18.524 -> 14.997/15.584/14.949 ms, gains 12.46/15.65/19.30%.
+All sampled candidate frame maxima were <=15.819 ms. Five integrated 4K
+comparisons passed maximum-2/RMS-.05 with identical depth, and all 23
+low-resolution chapter fallback frames were exact. Portrait exceeded the
+maximum-2 color gate at one channel, so portrait eligibility was removed;
+two production fallback checks then passed with maximum <=1 and identical
+depth. The post-commit production 4K 160 s pair passed (maximum 2, RMS
+<=.02698, identical depth), and its saved image was viewed directly.
+
+See PRIMARY-GUIDE.md for the final domain, control checks, source fidelity and
+artifact paths. The original unrestricted guide remains experimental; these
+results apply to the guarded production integration. Whole-film 4K60 and
+continuous frame-time tails remain unverified.
