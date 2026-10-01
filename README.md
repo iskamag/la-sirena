@@ -28,8 +28,8 @@ npm run build
 npm run preview
 ```
 
-Deploy `dist/` to a static host. For GitHub Pages, select **GitHub Actions**
-in Settings → Pages, then run **Deploy film to GitHub Pages**.
+Deploy `dist/` to a static host. The public GitHub Pages site serves the
+`gh-pages` branch.
 
 [Video export](docs/EXPORTING.md) · [Film and score](docs/FILM.md)
 
