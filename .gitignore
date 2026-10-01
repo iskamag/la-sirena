@@ -3,3 +3,14 @@ dist/
 *.silent.mp4
 artifacts/
 __pycache__/
+
+# Local credentials and machine settings
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.vscode/
+.idea/
+# Offline render intermediates, even outside artifacts/
+*.render/

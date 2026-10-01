@@ -77,7 +77,7 @@ function setupChapters() {
 async function load() {
   try {
     createRenderer();
-    const response = await fetch('/track-analysis.json'); if (!response.ok) throw new Error('The audio analysis could not be loaded. Run npm run audio:prepare, then reload.');
+    const response = await fetch('./track-analysis.json'); if (!response.ok) throw new Error('The audio analysis could not be loaded. Run npm run audio:prepare, then reload.');
     analysis = await response.json(); setupChapters();
     await new Promise((resolve, reject) => { if (audio.readyState >= 2) resolve(); else { audio.addEventListener('loadeddata', resolve, { once: true }); audio.addEventListener('error', () => reject(new Error('The music could not be loaded. Run npm run audio:prepare, then reload.')), { once: true }); audio.load(); } });
     state.ready = true; $('enter').disabled = false; $('enter-label').textContent = 'ENTER THE TRANSMISSION'; $('enter-detail').textContent = `${timecode(analysis.duration)} · Headphones recommended`;
