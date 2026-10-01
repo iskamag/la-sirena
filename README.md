@@ -3,6 +3,8 @@
 A 4:49 music film rendered live in WebGL 2. Procedural worlds and shadowcats,
 synchronized to the original tracker module.
 
+[Watch in your browser](https://iskamag.github.io/la-sirena/)
+
 ![Preview](docs/preview.png)
 
 ## Run
